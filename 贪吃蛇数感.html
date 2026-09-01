@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>贪吃蛇数感</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#071711;
+    --panel:#0f2418;
+    --panel-2:#0c1e14;
+    --line:#1e3d2a;
+    --text:#eafbf0;
+    --muted:#86ab95;
+    --snake:#39ff88;
+    --snake-dim:#1f6b45;
+    --apple:#ff5c5c;
+    --amber:#ffcd3c;
+    --good:#4ade80;
+    --bad:#fb7185;
+    --radius:16px;
+    --font-display:'Baloo 2','PingFang SC','Microsoft YaHei',sans-serif;
+    --font-mono:'JetBrains Mono',ui-monospace,monospace;
+    --font-body:'PingFang SC','Microsoft YaHei','Segoe UI',sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(1000px 500px at 10% -10%, #10301f 0%, transparent 60%),
+      radial-gradient(900px 450px at 110% 20%, #0f2a1c 0%, transparent 55%),
+      var(--bg);
+    color:var(--text);
+    font-family:var(--font-body);
+    padding:24px 16px 50px;
+  }
+  .wrap{max-width:760px;margin:0 auto;}
+  header h1{
+    font-family:var(--font-display); font-size:clamp(1.4rem,3.4vw,1.9rem);
+    margin:0 0 4px; font-weight:800; color:var(--snake); letter-spacing:.01em;
+  }
+  header p{color:var(--muted);margin:0;font-size:.86rem;line-height:1.5;}
+  section{
+    background:linear-gradient(180deg,var(--panel),var(--panel-2));
+    border:1px solid var(--line); border-radius:var(--radius);
+    padding:16px 18px; margin-top:14px;
+  }
+  .config{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;}
+  .field{display:flex;flex-direction:column;gap:6px;}
+  .field label{font-size:.72rem;color:var(--muted);}
+  .stepper{display:flex;align-items:center;gap:8px;background:var(--panel-2);border:1px solid var(--line);border-radius:9px;padding:4px 6px;height:40px;}
+  .stepper button{
+    width:32px;height:32px;border:none;border-radius:6px;background:var(--snake-dim);color:var(--text);
+    font-family:var(--font-display);font-weight:700;font-size:1rem;cursor:pointer;flex:none;
+  }
+  .stepper button:hover{filter:brightness(1.2);}
+  .stepper .val{font-family:var(--font-mono);font-weight:700;font-size:1rem;min-width:22px;text-align:center;}
+
+  .gridwrap{
+    max-height:360px; overflow-y:auto; border:1px solid var(--line); border-radius:10px;
+    background:var(--panel-2); padding:6px; position:relative;
+  }
+  .gridrow{display:grid; align-items:stretch; gap:4px; margin-bottom:4px;}
+  .arrow{
+    display:flex;align-items:center;justify-content:center;color:var(--muted);
+    font-size:.85rem;
+  }
+  .cell{
+    background:#0a1c12; border:1px solid #17301f; border-radius:6px;
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--font-mono); font-weight:700; font-size:.92rem; color:var(--snake);
+    min-height:34px; position:relative;
+  }
+  .cell.empty{color:transparent;}
+  .cell.chunk-a{background:#123322; border-color:#1f6b45; color:#7dffb3;}
+  .cell.chunk-b{background:#3a2f10; border-color:#a3791f; color:#ffd166;}
+  .cell.correct{outline:3px solid var(--amber); box-shadow:0 0 10px rgba(255,205,60,.6); color:var(--amber);}
+  .cell.guess-wrong{outline:2px dashed var(--bad);}
+  .cell.guess-right{outline:3px solid var(--good); box-shadow:0 0 10px rgba(74,222,128,.55); color:var(--good);}
+  .cell.echo{outline:2px solid #5aa9ff; box-shadow:0 0 8px rgba(90,169,255,.55); color:#5aa9ff;}
+
+  .quiz{margin-top:0;}
+  .target{
+    display:flex; align-items:center; gap:12px; margin-bottom:14px;
+  }
+  .target .num{
+    font-family:var(--font-mono); font-weight:700; font-size:2.4rem; color:var(--apple);
+    background:var(--panel-2); border:1px solid var(--line); border-radius:12px; padding:6px 18px;
+  }
+  .target .q{font-size:.92rem;color:var(--muted);line-height:1.5;}
+  .guessrow{display:flex; flex-wrap:wrap; gap:18px; align-items:flex-end; margin-bottom:12px;}
+  .guessrow label{font-size:.78rem;color:var(--muted);display:block;margin-bottom:6px;}
+  .rowinput{
+    background:var(--panel-2); border:1px solid var(--line); color:var(--text);
+    font-family:var(--font-mono); font-weight:700; font-size:1.1rem;
+    border-radius:9px; padding:8px 10px; width:90px;
+  }
+  .colbtns{display:flex;gap:6px;}
+  .colbtn{
+    width:40px;height:40px;border-radius:9px;border:1px solid var(--line);background:var(--panel-2);
+    color:var(--text); font-family:var(--font-mono); font-weight:700; font-size:1rem; cursor:pointer;
+  }
+  .colbtn.selected{background:var(--snake);color:#04150c;border-color:var(--snake);}
+  .btnrow{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;}
+  button.btn{
+    font-family:var(--font-display); font-weight:700; font-size:.88rem; border:none;
+    border-radius:9px; padding:9px 16px; cursor:pointer; transition:.15s transform, .15s filter;
+  }
+  button.btn:hover{transform:translateY(-1px);filter:brightness(1.1);}
+  button.btn.primary{background:var(--snake);color:#04150c;}
+  button.btn.ghost{background:transparent;color:var(--text);border:1px solid var(--line);}
+  .feedback{
+    font-size:.9rem; line-height:1.7; padding:10px 13px; border-radius:9px; display:none; white-space:pre-line;
+  }
+  .feedback.show{display:block;}
+  .feedback.good{background:rgba(74,222,128,.12);color:var(--good);border:1px solid rgba(74,222,128,.35);}
+  .feedback.bad{background:rgba(251,113,133,.12);color:var(--bad);border:1px solid rgba(251,113,133,.35);}
+  .methodrow{display:flex;gap:6px;margin-bottom:8px;}
+  .methodbtn{
+    font-family:var(--font-display); font-weight:700; font-size:.74rem; cursor:pointer;
+    padding:5px 11px; border-radius:999px; border:1px solid currentColor; background:transparent;
+    color:inherit; opacity:.55;
+  }
+  .methodbtn.active{opacity:1;}
+  .methodtext{white-space:pre-line;}
+  footer{text-align:center;color:var(--muted);font-size:.68rem;margin-top:16px;font-family:var(--font-mono);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🐍 贪吃蛇数感</h1>
+    <p>数字像贪吃蛇一样，一行一行地来回爬格子。给你一个1000以内的数，猜猜它会爬到哪一格。</p>
+  </header>
+
+  <section class="config">
+    <div class="field">
+      <label>每行几格（列数）</label>
+      <div class="stepper">
+        <button id="colsMinus">−</button>
+        <span class="val" id="colsVal">4</span>
+        <button id="colsPlus">+</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>数字 1 从第几列出发</label>
+      <div class="stepper">
+        <button id="startMinus">−</button>
+        <span class="val" id="startVal">3</span>
+        <button id="startPlus">+</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>第一行方向</label>
+      <div class="colbtns" id="dirBtns" style="gap:6px;">
+        <button class="colbtn" id="dirRight">→</button>
+        <button class="colbtn" id="dirLeft">←</button>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="gridwrap" id="gridwrap"></div>
+  </section>
+
+  <section class="quiz">
+    <div class="target">
+      <div class="num" id="targetNum">87</div>
+      <div class="q">这个数字会落在<b style="color:var(--snake)">第几列</b>？</div>
+    </div>
+    <div class="guessrow">
+      <div>
+        <label>第几列</label>
+        <div class="colbtns" id="colBtns"></div>
+      </div>
+    </div>
+    <div class="btnrow">
+      <button class="btn primary" id="btnCheck">检查答案</button>
+      <button class="btn ghost" id="btnNext">换一题</button>
+    </div>
+    <div class="feedback" id="feedback"></div>
+  </section>
+
+  <footer>拖不动？直接数格子也可以 · 列数和起点改了会自动换新题</footer>
+</div>
+
+<script>
+(function(){
+  const DEMO_ROWS = 5;
+  const MAX_N = 1000;
+
+  const state = { cols:4, startCol:3, startDir:'right', target:0, guessCol:null, revealedRows:DEMO_ROWS, map:null, valueGrid:null, method:1, showChunks:false };
+
+  function opposite(dir){ return dir==='right' ? 'left' : 'right'; }
+
+  function rowDirection(row){
+    if(row===1) return state.startDir;
+    const flips = row-1; // how many direction-flips since row1
+    return (flips%2===0) ? state.startDir : opposite(state.startDir);
+  }
+
+  function computeMap(){
+    const { cols, startCol, startDir } = state;
+    const map = new Array(MAX_N+1);
+    const valueGrid = {};
+    let num = 1;
+    if(startDir==='right'){
+      for(let c=startCol; c<=cols && num<=MAX_N; c++){
+        map[num] = { row:1, col:c };
+        valueGrid[1] = valueGrid[1] || {};
+        valueGrid[1][c] = num;
+        num++;
+      }
+    }else{
+      for(let c=startCol; c>=1 && num<=MAX_N; c--){
+        map[num] = { row:1, col:c };
+        valueGrid[1] = valueGrid[1] || {};
+        valueGrid[1][c] = num;
+        num++;
+      }
+    }
+    let row = 2;
+    while(num<=MAX_N){
+      const dir = rowDirection(row);
+      if(dir==='right'){
+        for(let c=1; c<=cols && num<=MAX_N; c++){
+          map[num] = { row, col:c };
+          valueGrid[row] = valueGrid[row] || {};
+          valueGrid[row][c] = num;
+          num++;
+        }
+      }else{
+        for(let c=cols; c>=1 && num<=MAX_N; c--){
+          map[num] = { row, col:c };
+          valueGrid[row] = valueGrid[row] || {};
+          valueGrid[row][c] = num;
+          num++;
+        }
+      }
+      row++;
+    }
+    state.map = map;
+    state.valueGrid = valueGrid;
+  }
+
+  function renderGrid(uptoRow){
+    const gridwrap = document.getElementById('gridwrap');
+    gridwrap.innerHTML = '';
+    const cycle = 2*state.cols;
+    for(let r=1; r<=uptoRow; r++){
+      const rowEl = document.createElement('div');
+      rowEl.className = 'gridrow';
+      rowEl.style.gridTemplateColumns = `24px repeat(${state.cols}, 1fr)`;
+      rowEl.id = 'row-'+r;
+      const arrow = document.createElement('div');
+      arrow.className = 'arrow';
+      arrow.textContent = rowDirection(r)==='right' ? '→' : '←';
+      rowEl.appendChild(arrow);
+      for(let c=1; c<=state.cols; c++){
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        cell.id = `cell-${r}-${c}`;
+        const v = (state.valueGrid[r] && state.valueGrid[r][c]) ? state.valueGrid[r][c] : null;
+        if(v===null){ cell.classList.add('empty'); cell.textContent='·'; }
+        else{
+          cell.textContent = v;
+          if(state.showChunks){
+            const chunk = Math.floor((v-1)/cycle);
+            cell.classList.add(chunk%2===0 ? 'chunk-a' : 'chunk-b');
+          }
+        }
+        rowEl.appendChild(cell);
+      }
+      gridwrap.appendChild(rowEl);
+    }
+  }
+
+  function buildColButtons(){
+    const wrap = document.getElementById('colBtns');
+    wrap.innerHTML = '';
+    for(let c=1; c<=state.cols; c++){
+      const b = document.createElement('button');
+      b.className = 'colbtn';
+      b.textContent = c;
+      b.addEventListener('click', ()=>{
+        state.guessCol = c;
+        [...wrap.children].forEach(ch=>ch.classList.remove('selected'));
+        b.classList.add('selected');
+      });
+      wrap.appendChild(b);
+    }
+  }
+
+  function reasoning1(N){
+    const { cols, startCol, startDir } = state;
+    const count1 = startDir==='right' ? (cols - startCol + 1) : startCol;
+    if(N<=count1){
+      const col = startDir==='right' ? (startCol+N-1) : (startCol-N+1);
+      return `第1行只有 ${count1} 格（从第${startCol}列${startDir==='right'?'往右到':'往左到'}${startDir==='right'?cols:1}列），${N} ≤ ${count1}，所以直接在第1行、第${col}列。`;
+    }
+    const rem = N - count1;
+    const q = Math.floor((rem-1)/cols);
+    const row = 2+q;
+    const posInRow = rem - q*cols;
+    const dir = rowDirection(row);
+    const col = dir==='right' ? posInRow : (cols-posInRow+1);
+    return `第1行占了 ${count1} 个数字，先减掉：${N} − ${count1} = ${rem}。\n每整行有 ${cols} 格：${rem} ÷ ${cols} → 第 ${row} 行第 ${posInRow} 个格子。\n第${row}行是${dir==='right'?'从左往右':'从右往左'}排的，所以是第 ${col} 列。`;
+  }
+
+  function reasoning2(N){
+    const { cols } = state;
+    const cycle = 2*cols;
+    let r = N % cycle;
+    if(r===0) r = cycle;
+    const rCell = state.map[r];
+    if(N===r){
+      return `${N} 就在循环的第一轮里，直接看网格就行。`;
+    }
+    return `每 ${cycle} 个数字就会重复一次列的位置（一行 ${cols} 格，一来一回正好是 ${cols}×2 = ${cycle} 个）。\n${N} ÷ ${cycle} 的余数是 ${r}（正好整除就当余数是 ${cycle}）。\n所以 ${N} 和数字 ${r} 落在同一列——数字 ${r} 在第${rCell.row}行第${rCell.col}列，所以 ${N} 也在第 ${rCell.col} 列。`;
+  }
+
+  function newQuestion(){
+    state.target = Math.floor(Math.random()*MAX_N)+1;
+    state.method = 1;
+    state.showChunks = false;
+    document.getElementById('targetNum').textContent = state.target;
+    state.guessCol = null;
+    [...document.getElementById('colBtns').children].forEach(ch=>ch.classList.remove('selected'));
+    document.getElementById('feedback').className = 'feedback';
+    document.getElementById('feedback').innerHTML = '';
+    state.revealedRows = DEMO_ROWS;
+    renderGrid(state.revealedRows);
+    clearHighlights();
+  }
+
+  function clearHighlights(){
+    document.querySelectorAll('.cell').forEach(c=>{
+      c.classList.remove('correct','guess-wrong','guess-right','echo');
+    });
+  }
+  function clearEcho(){
+    document.querySelectorAll('.cell.echo').forEach(c=>c.classList.remove('echo'));
+  }
+
+  function rebuildAll(){
+    computeMap();
+    buildColButtons();
+    newQuestion();
+  }
+
+  // ---- config steppers ----
+  document.getElementById('colsMinus').addEventListener('click', ()=>{
+    if(state.cols>3){ state.cols--; if(state.startCol>state.cols) state.startCol=state.cols; syncConfigLabels(); rebuildAll(); }
+  });
+  document.getElementById('colsPlus').addEventListener('click', ()=>{
+    if(state.cols<6){ state.cols++; syncConfigLabels(); rebuildAll(); }
+  });
+  document.getElementById('startMinus').addEventListener('click', ()=>{
+    if(state.startCol>1){ state.startCol--; syncConfigLabels(); rebuildAll(); }
+  });
+  document.getElementById('startPlus').addEventListener('click', ()=>{
+    if(state.startCol<state.cols){ state.startCol++; syncConfigLabels(); rebuildAll(); }
+  });
+  document.getElementById('dirRight').addEventListener('click', ()=>{
+    state.startDir = 'right'; syncConfigLabels(); rebuildAll();
+  });
+  document.getElementById('dirLeft').addEventListener('click', ()=>{
+    state.startDir = 'left'; syncConfigLabels(); rebuildAll();
+  });
+  function syncConfigLabels(){
+    document.getElementById('colsVal').textContent = state.cols;
+    document.getElementById('startVal').textContent = state.startCol;
+    document.getElementById('dirRight').classList.toggle('selected', state.startDir==='right');
+    document.getElementById('dirLeft').classList.toggle('selected', state.startDir==='left');
+  }
+
+  // ---- check / next ----
+  function renderFeedback(isRight, correct){
+    const feedback = document.getElementById('feedback');
+    feedback.className = 'feedback show ' + (isRight?'good':'bad');
+    const banner = isRight
+      ? `✔ 答对了！${state.target} 在第${correct.col}列（第${correct.row}行）。`
+      : `✘ 再想想。正确答案是第${correct.col}列（黄色格子，在第${correct.row}行）。`;
+    feedback.innerHTML = `
+      <div style="margin-bottom:8px;">${banner}</div>
+      <div class="methodrow">
+        <button class="methodbtn" data-m="1">解法一 · 按行算</button>
+        <button class="methodbtn" data-m="2">解法二 · 按循环算</button>
+      </div>
+      <div class="methodtext" id="methodText"></div>
+    `;
+    feedback.querySelectorAll('.methodbtn').forEach(b=>{
+      b.addEventListener('click', ()=>{
+        state.method = parseInt(b.dataset.m,10);
+        updateMethodText();
+      });
+    });
+    updateMethodText();
+  }
+  function updateMethodText(){
+    const feedback = document.getElementById('feedback');
+    if(!feedback.querySelector('.methodtext')) return;
+    feedback.querySelectorAll('.methodbtn').forEach(b=>{
+      b.classList.toggle('active', parseInt(b.dataset.m,10)===state.method);
+    });
+    feedback.querySelector('#methodText').textContent =
+      state.method===1 ? reasoning1(state.target) : reasoning2(state.target);
+
+    clearEcho();
+    if(state.method===2){
+      const cols = state.cols, cycle = 2*cols;
+      let r = state.target % cycle;
+      if(r===0) r = cycle;
+      if(r!==state.target){
+        const rCell = state.map[r];
+        const el = document.getElementById(`cell-${rCell.row}-${rCell.col}`);
+        if(el) el.classList.add('echo');
+      }
+    }
+  }
+
+  document.getElementById('btnCheck').addEventListener('click', ()=>{
+    const guessCol = state.guessCol;
+    const feedback = document.getElementById('feedback');
+    if(!guessCol){
+      feedback.className = 'feedback show bad';
+      feedback.innerHTML = '先点选第几列，才能检查哦。';
+      return;
+    }
+    const correct = state.map[state.target];
+    const cycle = 2*state.cols;
+    let echoR = state.target % cycle;
+    if(echoR===0) echoR = cycle;
+    const echoRow = (echoR===state.target) ? 0 : state.map[echoR].row;
+    const uptoRow = Math.max(correct.row, echoRow, state.revealedRows);
+    state.revealedRows = uptoRow;
+    state.showChunks = true; // cycle colors only revealed once an answer is checked
+    renderGrid(state.revealedRows);
+    clearHighlights();
+    const isRight = (guessCol===correct.col);
+    const correctCell = document.getElementById(`cell-${correct.row}-${correct.col}`);
+    if(isRight){
+      if(correctCell) correctCell.classList.add('guess-right');
+    }else{
+      if(correctCell) correctCell.classList.add('correct');
+    }
+    renderFeedback(isRight, correct);
+    if(correctCell) correctCell.scrollIntoView({behavior:'smooth', block:'center'});
+  });
+
+  document.getElementById('btnNext').addEventListener('click', newQuestion);
+
+  syncConfigLabels();
+  rebuildAll();
+})();
+</script>
+</body>
+</html>

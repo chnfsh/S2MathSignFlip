@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>环球时钟对齐尺 · 时差可视化模型</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a1626;
+    --panel:#122236;
+    --panel-2:#0e1c2c;
+    --line:#24405c;
+    --text:#eef4fa;
+    --muted:#8fa8bf;
+    --amber:#ffb703;
+    --amber-dim:#7a5c1e;
+    --sg:#5aa9ff;
+    --ldn:#ff6b81;
+    --ny:#ffd166;
+    --good:#4ade80;
+    --warn:#fbbf24;
+    --bad:#fb7185;
+    --radius:16px;
+    --font-display:'Space Grotesk','PingFang SC','Microsoft YaHei',sans-serif;
+    --font-mono:'JetBrains Mono',ui-monospace,'SFMono-Regular',monospace;
+    --font-body:'PingFang SC','Microsoft YaHei','Segoe UI',sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(1200px 600px at 15% -10%, #14263c 0%, transparent 60%),
+      radial-gradient(1000px 500px at 110% 10%, #142a3a 0%, transparent 55%),
+      var(--bg);
+    color:var(--text);
+    font-family:var(--font-body);
+    padding:24px 16px 50px;
+  }
+  .wrap{max-width:880px;margin:0 auto;}
+  header{margin-bottom:14px;}
+  header h1{
+    font-family:var(--font-display); font-size:clamp(1.3rem,3vw,1.8rem);
+    margin:0 0 6px; font-weight:700; letter-spacing:-.01em;
+  }
+  header p{ color:var(--muted); margin:0; line-height:1.5; font-size:.88rem; }
+  section{
+    background:linear-gradient(180deg,var(--panel),var(--panel-2));
+    border:1px solid var(--line); border-radius:var(--radius);
+    padding:16px 18px; margin-top:12px;
+  }
+  .board .hint{ font-size:.76rem;color:var(--muted); margin:0 0 6px; }
+  .board svg{width:100%;height:auto;display:block;touch-action:none;}
+
+
+  .readouts{ display:flex; flex-direction:column; gap:8px; margin:14px auto 0; max-width:300px; }
+  .rrow{
+    display:flex; align-items:center; gap:8px;
+    background:var(--panel-2); border:1px solid var(--line);
+    border-radius:10px; padding:7px 12px;
+  }
+  .dot{width:11px;height:11px;border-radius:50%;flex:none;}
+  .rrow .cname{ font-family:var(--font-display); font-weight:700; font-size:.9rem; width:52px; flex:none; }
+  .rrow .digits{
+    font-family:var(--font-mono); font-weight:700; font-size:1.55rem;
+    letter-spacing:.02em; margin-left:auto;
+  }
+  .daybadge{
+    font-family:var(--font-mono); font-size:.68rem; padding:3px 9px;
+    border-radius:999px; background:var(--panel); border:1px solid var(--line); color:var(--muted);
+    flex:none;
+  }
+  .daybadge.shift{color:var(--amber);border-color:var(--amber-dim);}
+
+  .practice h2{ font-family:var(--font-display); font-size:.98rem; margin:0 0 4px; }
+  .practice .sub{ color:var(--muted); font-size:.8rem; margin:0 0 10px; }
+  .qtext{
+    background:var(--panel-2); border:1px solid var(--line); border-radius:10px;
+    padding:10px 13px; font-size:.86rem; line-height:1.6; margin-bottom:10px; min-height:18px;
+  }
+  .qtext b{color:var(--amber);}
+  .btnrow{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;}
+  button.btn{
+    font-family:var(--font-display); font-weight:600; font-size:.82rem; border:none;
+    border-radius:9px; padding:8px 14px; cursor:pointer; transition:.15s transform, .15s filter;
+  }
+  button.btn:hover{transform:translateY(-1px);filter:brightness(1.08);}
+  button.btn.primary{background:var(--amber);color:#241a03;}
+  button.btn.ghost{background:transparent;color:var(--text);border:1px solid var(--line);}
+  .feedback{
+    font-family:var(--font-mono); font-size:.82rem; padding:8px 12px; border-radius:9px; display:none;
+  }
+  .feedback.show{display:block;}
+  .feedback.good{background:rgba(74,222,128,.12);color:var(--good);border:1px solid rgba(74,222,128,.35);}
+  .feedback.warn{background:rgba(251,191,36,.12);color:var(--warn);border:1px solid rgba(251,191,36,.35);}
+  .feedback.bad{background:rgba(251,113,133,.12);color:var(--bad);border:1px solid rgba(251,113,133,.35);}
+  footer{ text-align:center;color:var(--muted);font-size:.68rem;margin-top:16px;font-family:var(--font-mono); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>环球时钟对齐尺</h1>
+  </header>
+
+  <section class="board">
+    <svg id="clockSvg" viewBox="0 0 1000 340" aria-label="三城市时间对齐模型"></svg>
+    <div class="readouts" id="readouts"></div>
+  </section>
+
+  <section class="practice">
+    <h2>🎯 练习闯关</h2>
+    <p class="sub">拖竖线对准绿色圆圈标出的刻度，再看另一条尺子读出的时间。</p>
+    <div class="qtext" id="qtext">点击「载入例题」，试试：新加坡是 06:00 时，伦敦是几点？</div>
+    <div class="btnrow">
+      <button class="btn primary" id="btnExample">载入例题</button>
+      <button class="btn primary" id="btnRandom">随机出题</button>
+      <button class="btn ghost" id="btnCheck">对答案</button>
+      <button class="btn ghost" id="btnExit" style="display:none;">返回自由探索</button>
+    </div>
+    <div class="feedback" id="feedback"></div>
+  </section>
+
+  <footer>拖一次就懂 · 竖线切到的刻度永远是同一时刻</footer>
+</div>
+
+<script>
+(function(){
+  const svgNS = "http://www.w3.org/2000/svg";
+  const svg = document.getElementById('clockSvg');
+  const TX0 = 28, TX1 = 950;
+  const W = TX1 - TX0;
+  const YS = [60, 170, 280]; // ruler y-positions top to bottom
+
+  // ---- PER-PROBLEM CONFIG (only block to edit for a different question) ----
+  // Singapore is the reference: T is Singapore's own clock reading, expressed
+  // on a continuous scale so "tomorrow" is just T >= 24 (no wraparound math needed for display).
+  const WINDOW_START = 22;   // 第一天 22:00
+  const WINDOW_SPAN   = 10;  // show 10 hours -> ends at 08:00 next day
+  const CITIES = [
+    { key:'sg',  name:'新加坡', nameEn:'Singapore', offset:0,   color:'#5aa9ff' },
+    { key:'ldn', name:'伦敦',   nameEn:'London',    offset:-7,  color:'#ff6b81' },
+    { key:'ny',  name:'纽约',   nameEn:'New York',  offset:-13, color:'#ffd166' },
+  ];
+  // ---------------------------------------------------------------------
+
+  const state = { T: 23.5, quiz: null }; // starts on the worksheet's given fact: 新加坡23:30
+
+  function xOf(T){ return TX0 + ((T-WINDOW_START)/WINDOW_SPAN)*W; }
+  function hoursOfX(x){
+    let frac = (x-TX0)/W;
+    frac = Math.min(1, Math.max(0, frac));
+    let T = WINDOW_START + frac*WINDOW_SPAN;
+    T = Math.round(T*12)/12; // snap to 5 minutes
+    return T;
+  }
+  function fmt(hours){
+    let totalMin = Math.round(hours*60);
+    totalMin = ((totalMin%1440)+1440)%1440;
+    const h = Math.floor(totalMin/60), m = totalMin%60;
+    return { hh:String(h).padStart(2,'0'), mm:String(m).padStart(2,'0') };
+  }
+  function dayLabelRel(shift){
+    if(shift<=-1) return '昨天';
+    if(shift>=1) return '明天';
+    return '今天';
+  }
+  function reading(city, T){
+    const abs = T + city.offset;
+    const shift = Math.floor(abs/24);
+    const hours = ((abs%24)+24)%24;
+    return { hours, shift };
+  }
+
+  function el(tag, attrs){
+    const e = document.createElementNS(svgNS, tag);
+    for(const k in attrs) e.setAttribute(k, attrs[k]);
+    return e;
+  }
+
+  const decor = el('g', { 'pointer-events':'none' });
+  svg.appendChild(decor);
+
+  function ownMidnightT(city){
+    // where THIS city's own local clock crosses 00:00 (T + offset ≡ 0 mod 24), if that
+    // moment falls inside the visible window at all.
+    const base = ((-city.offset)%24+24)%24;
+    for(const c of [base-24, base, base+24]){
+      if(c >= WINDOW_START && c < WINDOW_START+WINDOW_SPAN) return c;
+    }
+    return null; // this city doesn't cross midnight within the visible window
+  }
+
+  // ---- build 3 rulers ----
+  // Each ruler switches from a single stroke ("今天" for THAT city) to a double
+  // stroke ("明天" for THAT city) exactly where that city's own clock passes 00:00 —
+  // each city gets its own crossing point, not a shared one.
+  const rulerTickGroups = [];
+  CITIES.forEach((city, i) => {
+    const y = YS[i];
+    const g = el('g', {});
+    const t0 = ownMidnightT(city);
+    if(t0===null){
+      g.appendChild(el('line', { x1:xOf(WINDOW_START), y1:y, x2:xOf(WINDOW_START+WINDOW_SPAN), y2:y, stroke:city.color, 'stroke-width':3, 'stroke-linecap':'round', opacity:.85 }));
+    }else{
+      g.appendChild(el('line', { x1:xOf(WINDOW_START), y1:y, x2:xOf(t0), y2:y, stroke:city.color, 'stroke-width':3, 'stroke-linecap':'round', opacity:.85 }));
+      g.appendChild(el('line', { x1:xOf(t0), y1:y-2, x2:xOf(WINDOW_START+WINDOW_SPAN), y2:y-2, stroke:city.color, 'stroke-width':2, 'stroke-linecap':'round', opacity:.85 }));
+      g.appendChild(el('line', { x1:xOf(t0), y1:y+2, x2:xOf(WINDOW_START+WINDOW_SPAN), y2:y+2, stroke:city.color, 'stroke-width':2, 'stroke-linecap':'round', opacity:.85 }));
+    }
+    // city name to the left of the line
+    decor.appendChild(g);
+
+    const ticks = el('g', {});
+    decor.appendChild(ticks);
+    rulerTickGroups.push({ ticks, y, city });
+  });
+
+  function rebuildTicks(){
+    rulerTickGroups.forEach(({ ticks, y, city }) => {
+      ticks.innerHTML = '';
+      for(let T=WINDOW_START; T<=WINDOW_START+WINDOW_SPAN; T+=1){
+        const x = xOf(T);
+        ticks.appendChild(el('line', { x1:x, y1:y-9, x2:x, y2:y+9, stroke:'#3a5875', 'stroke-width':2 }));
+        const labelVal = ((T+city.offset)%24+24)%24;
+        const t = el('text', { x, y:y-16, 'text-anchor':'middle', fill:'#96acc2', 'font-family':"'JetBrains Mono',monospace", 'font-size':'15', 'font-weight':'600' });
+        t.textContent = String(labelVal===24?0:Math.round(labelVal)).padStart(2,'0')+'00';
+        ticks.appendChild(t);
+      }
+    });
+  }
+
+  // ---- cursor spanning all 3 rulers ----
+  const cursorLine = el('line', { y1:YS[0]-30, y2:YS[2]+50, stroke:'#eef4fa', 'stroke-width':2, 'pointer-events':'none' });
+  svg.appendChild(cursorLine);
+
+  const grip = el('circle', { cx:0, cy:YS[0]-40, r:14, fill:'#eef4fa', stroke:'#0a1626', 'stroke-width':2, style:'cursor:grab;' });
+  svg.appendChild(grip);
+
+  const capture = el('rect', { x:TX0-30, y:0, width:W+60, height:340, fill:'transparent', style:'cursor:pointer;' });
+  svg.appendChild(capture);
+
+  // dots + bubbles at each ruler intersection (bubbles sit BELOW each line, ticks sit ABOVE — never collide)
+  const markers = CITIES.map((city) => {
+    const dot = el('circle', { r:6, fill:city.color, stroke:'#0a1626', 'stroke-width':2, 'pointer-events':'none' });
+    const bubbleG = el('g', { 'pointer-events':'none' });
+    const rect = el('rect', { width:210, height:40, rx:9, fill:city.color });
+    const txt = el('text', { x:105, y:27, 'text-anchor':'middle', fill:'#0a1626', 'font-family':"'Space Grotesk',monospace", 'font-weight':'700', 'font-size':'24' });
+    bubbleG.appendChild(rect); bubbleG.appendChild(txt);
+    svg.appendChild(dot); svg.appendChild(bubbleG);
+    return { dot, bubbleG, txt };
+  });
+
+  const targetMarker = el('g', { style:'display:none;', 'pointer-events':'none' });
+  targetMarker.appendChild(el('circle', { r:15, fill:'none', stroke:'#4ade80', 'stroke-width':2.5 }));
+  svg.appendChild(targetMarker);
+
+  // ---- sound effects (synthesized, no audio files needed) ----
+  let audioCtx = null;
+  let lastBubbleBucket = null;
+  let dingedForTarget = false;
+  function getCtx(){
+    if(!audioCtx){ audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }
+    if(audioCtx.state === 'suspended') audioCtx.resume();
+    return audioCtx;
+  }
+  function playBubble(){
+    try{
+      const ctx = getCtx();
+      const t0 = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      const freq = 480 + Math.random()*260; // slight pitch variation so it doesn't feel robotic
+      osc.frequency.setValueAtTime(freq, t0);
+      osc.frequency.exponentialRampToValueAtTime(freq*1.7, t0+0.05);
+      gain.gain.setValueAtTime(0.0001, t0);
+      gain.gain.exponentialRampToValueAtTime(0.16, t0+0.008);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0+0.09);
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.start(t0); osc.stop(t0+0.1);
+    }catch(e){}
+  }
+  function playDing(){
+    try{
+      const ctx = getCtx();
+      const t0 = ctx.currentTime;
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0.0001, t0);
+      gain.gain.exponentialRampToValueAtTime(0.22, t0+0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0+0.55);
+      gain.connect(ctx.destination);
+      [1318.5, 1975.5].forEach(freq=>{ // E6 + B6, bell-like
+        const osc = ctx.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, t0);
+        osc.connect(gain);
+        osc.start(t0); osc.stop(t0+0.55);
+      });
+    }catch(e){}
+  }
+
+  function svgX(clientX){
+    const rect = svg.getBoundingClientRect();
+    const scale = 1000/rect.width;
+    return (clientX-rect.left)*scale;
+  }
+  function setFromClientX(clientX){
+    const newT = hoursOfX(svgX(clientX));
+    const bucket = Math.round(newT*12); // 5-minute buckets
+    if(bucket !== lastBubbleBucket){
+      playBubble();
+      lastBubbleBucket = bucket;
+    }
+    state.T = newT;
+    render();
+    if(state.quiz){
+      const d = Math.abs(state.T - state.quiz.targetT);
+      if(d <= 1/12 + 1e-9){
+        if(!dingedForTarget){ playDing(); dingedForTarget = true; }
+      }else{
+        dingedForTarget = false;
+      }
+    }
+  }
+  function startDrag(e){
+    e.preventDefault();
+    grip.style.cursor='grabbing';
+    if(e.pointerId!==undefined){ try{ e.target.setPointerCapture(e.pointerId); }catch(err){} }
+    setFromClientX(e.clientX);
+    const move = (ev)=> setFromClientX(ev.clientX);
+    const up = ()=>{
+      grip.style.cursor='grab';
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  }
+  capture.addEventListener('pointerdown', startDrag);
+  grip.addEventListener('pointerdown', startDrag);
+
+  // ---- readouts (compact rows) ----
+  const readoutsEl = document.getElementById('readouts');
+  CITIES.forEach((city) => {
+    const row = document.createElement('div');
+    row.className = 'rrow';
+    row.innerHTML = `
+      <span class="dot" style="background:${city.color}"></span>
+      <span class="cname">${city.name}</span>
+      <span class="daybadge" id="day-${city.key}">今天</span>
+      <span class="digits" id="digits-${city.key}" style="color:${city.color}">--:--</span>
+    `;
+    readoutsEl.appendChild(row);
+  });
+
+  function render(){
+    rebuildTicks();
+    const T = state.T;
+    const results = CITIES.map(c => reading(c, T));
+
+    CITIES.forEach((city, i) => {
+      const { hours, shift } = results[i];
+      const { hh, mm } = fmt(hours);
+      document.getElementById('digits-'+city.key).textContent = `${hh}:${mm}`;
+      const badge = document.getElementById('day-'+city.key);
+      badge.textContent = dayLabelRel(shift);
+      badge.classList.toggle('shift', shift!==0);
+    });
+
+    const xCursor = xOf(T);
+    cursorLine.setAttribute('x1', xCursor); cursorLine.setAttribute('x2', xCursor);
+    grip.setAttribute('cx', xCursor);
+
+    CITIES.forEach((city, i) => {
+      const y = YS[i];
+      const totalMin = ((Math.round(results[i].hours*60)%1440)+1440)%1440;
+      const bh = Math.floor(totalMin/60), bm = totalMin%60;
+      markers[i].dot.setAttribute('cx', xCursor);
+      markers[i].dot.setAttribute('cy', y);
+      markers[i].bubbleG.setAttribute('transform', `translate(${xCursor-105},${y+16})`);
+      markers[i].txt.textContent = `${city.nameEn} ${bh}:${String(bm).padStart(2,'0')}`;
+    });
+
+    if(state.quiz){
+      const q = state.quiz;
+      targetMarker.setAttribute('transform', `translate(${xOf(q.targetT)},${YS[q.knownIdx]})`);
+      targetMarker.style.display = '';
+    }else{
+      targetMarker.style.display = 'none';
+    }
+  }
+
+  // ---- practice ----
+  // Puzzle mechanic: student drags the shared cursor until it lands on the
+  // green ring (the GIVEN city's stated time). Once aligned, every other
+  // ruler is already showing the correct answer live — no separate "reveal" needed.
+  const qtext = document.getElementById('qtext');
+  const feedback = document.getElementById('feedback');
+  const btnExit = document.getElementById('btnExit');
+
+  function toWindowT(rawT){
+    let t = rawT;
+    while(t < WINDOW_START) t += 24;
+    while(t >= WINDOW_START+WINDOW_SPAN) t -= 24;
+    return t;
+  }
+
+  function startQuiz(knownIdx, targetT, questionText){
+    state.quiz = { knownIdx, targetT };
+    state.T = WINDOW_START; // start away from the answer so there's something to find
+    dingedForTarget = false;
+    qtext.innerHTML = questionText;
+    feedback.className = 'feedback'; feedback.textContent = '';
+    btnExit.style.display = '';
+    render();
+  }
+
+  document.getElementById('btnExample').addEventListener('click', () => {
+    const rawT = ((6 - CITIES[0].offset)%24+24)%24; // 新加坡 06:00
+    startQuiz(0, toWindowT(rawT),
+      `原题：伦敦 16:30 时，新加坡是 23:30。<br>如果 <b>新加坡是 06:00</b>，伦敦是几点？是哪一天？<br>把竖线拖到新加坡尺子上绿色圆圈标出的 06:00，再往下看伦敦这时候读数是多少。`
+    );
+  });
+
+  document.getElementById('btnRandom').addEventListener('click', () => {
+    const T = WINDOW_START + Math.floor(Math.random()*WINDOW_SPAN); // whole hour, easy to count to
+    let knownIdx = Math.floor(Math.random()*3);
+    let askIdx = Math.floor(Math.random()*3);
+    while(askIdx===knownIdx) askIdx = Math.floor(Math.random()*3);
+    const { hh } = fmt(reading(CITIES[knownIdx], T).hours);
+    startQuiz(knownIdx, T,
+      `当 <b>${CITIES[knownIdx].name}</b> 是 <b>${hh}:00</b> 时，<b>${CITIES[askIdx].name}</b> 是几点？是哪一天？<br>拖竖线对准绿色圆圈，再看${CITIES[askIdx].name}那一行的读数。`
+    );
+  });
+
+  document.getElementById('btnCheck').addEventListener('click', () => {
+    if(!state.quiz) return;
+    const diff = Math.abs(state.T - state.quiz.targetT);
+    const diffMin = Math.round(diff*60);
+    if(diffMin<=10){
+      feedback.className='feedback show good';
+      feedback.textContent = `✔ 对齐得很准！现在看下面时钟栏，其他城市的读数就是答案。`;
+    }else if(diffMin<=90){
+      feedback.className='feedback show warn';
+      feedback.textContent = `△ 差了约 ${diffMin} 分钟，再靠近绿色圆圈一点。`;
+    }else{
+      feedback.className='feedback show bad';
+      feedback.textContent = `✘ 还差得远，绿色圆圈就是题目给出的时刻，拖竖线过去对齐它。`;
+    }
+  });
+
+  btnExit.addEventListener('click', () => {
+    state.quiz = null;
+    dingedForTarget = false;
+    qtext.textContent = '自由探索模式：拖动竖线，观察三条尺子如何一起变化。';
+    feedback.className='feedback';
+    btnExit.style.display='none';
+    render();
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>

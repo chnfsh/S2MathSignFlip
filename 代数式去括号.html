@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多代数式去括号与分配律智能综合特训</title>
+    <style>
+        :root {
+            --paper: #F6F8FA;
+            --grid-line: #E1E8F0;
+            --card-bg: #FFFFFF;
+            --ink: #1C2530;
+            --ink-soft: #5B6B7C;
+            --red: #C0392B;
+            --green: #1E8F5F;
+            --blue: #2B4C7E;
+            --blue-soft: rgba(43, 76, 126, 0.08);
+        }
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif;
+            color: var(--ink);
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 48px 20px;
+            background-color: var(--paper);
+            background-image:
+                repeating-linear-gradient(0deg, var(--grid-line) 0 1px, transparent 1px 28px),
+                repeating-linear-gradient(90deg, var(--grid-line) 0 1px, transparent 1px 28px);
+        }
+        .container {
+            width: 100%;
+            max-width: 720px;
+        }
+        .page-title {
+            font-family: "STKaiti", "KaiTi", "华文楷体", serif;
+            font-size: 29px;
+            font-weight: 700;
+            text-align: center;
+            color: var(--ink);
+            margin: 0 0 8px;
+            letter-spacing: 0.5px;
+        }
+        .description {
+            color: var(--ink-soft);
+            font-size: 14px;
+            text-align: center;
+            line-height: 1.7;
+            max-width: 480px;
+            margin: 0 auto 34px;
+        }
+        .quiz-card {
+            position: relative;
+            background-color: var(--card-bg);
+            border: 1px solid rgba(28, 37, 48, 0.08);
+            border-radius: 4px;
+            box-shadow: 0 1px 2px rgba(28, 37, 48, 0.05);
+            padding: 28px 26px 28px 42px;
+            margin-bottom: 24px;
+        }
+        .quiz-card::before {
+            content: "";
+            position: absolute;
+            top: 14px;
+            bottom: 14px;
+            left: 22px;
+            width: 2px;
+            background: var(--red);
+            opacity: 0.5;
+        }
+        .title-label {
+            font-family: "STKaiti", "KaiTi", "华文楷体", serif;
+            font-style: italic;
+            font-size: 14.5px;
+            font-weight: 500;
+            color: var(--red);
+            margin-bottom: 10px;
+        }
+        .expression {
+            font-family: Georgia, "STKaiti", "KaiTi", "华文楷体", serif;
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--ink);
+            text-align: center;
+            background: var(--paper);
+            border: 1px solid var(--grid-line);
+            border-radius: 4px;
+            padding: 16px 12px;
+            margin-bottom: 26px;
+        }
+        .step-box {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-family: Georgia, "STKaiti", "KaiTi", "华文楷体", serif;
+            font-size: 20px;
+            color: var(--ink);
+            flex-wrap: wrap;
+        }
+        select, input[type="number"] {
+            font-family: Georgia, "PingFang SC", "Microsoft YaHei", sans-serif;
+            font-size: 17px;
+            font-weight: 700;
+            color: var(--blue);
+            background-color: transparent;
+            border: none;
+            border-bottom: 2.5px solid var(--ink-soft);
+            border-radius: 0;
+            padding: 4px 6px;
+            outline: none;
+            text-align: center;
+            transition: border-color 0.15s ease, background-color 0.15s ease;
+        }
+        select {
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0 L5 6 L10 0 Z' fill='%235B6B7C'/></svg>");
+            background-repeat: no-repeat;
+            background-position: right 4px center;
+            padding-right: 18px;
+            min-width: 46px;
+            cursor: pointer;
+        }
+        input[type="number"] {
+            width: 62px;
+        }
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type="number"] {
+            -moz-appearance: textfield;
+        }
+        select:hover, input[type="number"]:hover {
+            border-bottom-color: var(--blue);
+        }
+        select:focus, input[type="number"]:focus {
+            border-bottom-color: var(--blue);
+            background-color: var(--blue-soft);
+        }
+        .btn {
+            display: block;
+            width: 100%;
+            background-color: var(--ink);
+            color: #fff;
+            border: none;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: background-color 0.15s ease, transform 0.08s ease;
+        }
+        .btn:hover {
+            background-color: var(--blue);
+        }
+        .btn:active {
+            transform: translateY(1px);
+        }
+        .btn:disabled {
+            background-color: #B7C0CA;
+            cursor: not-allowed;
+        }
+        .field-error {
+            border-bottom-color: var(--red) !important;
+            background-color: rgba(192, 57, 43, 0.08) !important;
+        }
+        .result {
+            margin-top: 20px;
+            font-size: 15px;
+            font-weight: 600;
+            text-align: center;
+            padding: 14px 16px;
+            border-radius: 4px;
+            border-left: 4px solid transparent;
+            line-height: 1.6;
+        }
+        .success { color: var(--green); background-color: rgba(30, 143, 95, 0.08); border-left-color: var(--green); }
+        .error { color: var(--red); background-color: rgba(192, 57, 43, 0.06); border-left-color: var(--red); }
+        .score {
+            margin-top: 26px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            border-top: 1px dashed var(--grid-line);
+            padding-top: 18px;
+        }
+        .score-stamp {
+            font-family: Georgia, serif;
+            font-weight: 700;
+            font-size: 14px;
+            color: var(--red);
+            border: 2px solid var(--red);
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transform: rotate(-8deg);
+            opacity: 0.85;
+            flex-shrink: 0;
+        }
+        .score-text {
+            font-size: 14px;
+            color: var(--ink-soft);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1 class="page-title">多项式加减与分配律终极特训</h1>
+    <div class="description">
+        去括号看括号前的符号，负号要变号；加括号同理——括号前填负号，内部也要跟着变号。
+    </div>
+    
+    <div class="quiz-card">
+        <div class="title-label">当前题目</div>
+        <div class="expression" id="rawExpr">正在智能生成题目...</div>
+        
+        <div class="title-label" id="step1Label">第一步：展开式（去括号/分配律）</div>
+        <div class="step-box" id="step1Box"></div>
+
+        <div id="step2Wrapper">
+            <div style="height: 20px;"></div>
+            <div class="title-label" id="step2Label">第二步：合并同类项（最终结果）</div>
+            <div class="step-box" id="step2Box"></div>
+        </div>
+    </div>
+
+    <button class="btn" id="submitBtn" onclick="checkAnswer()">提交检查</button>
+    
+    <div class="result" id="resultMessage" style="display:none;"></div>
+    <div class="score" id="scoreBoard">
+        <span class="score-stamp" id="scoreStamp">--</span>
+        <span class="score-text" id="scoreText">已做题 0 · 正确率 --</span>
+    </div>
+</div>
+
+<script>
+    var totalAnswered = 0;
+    var correctCount = 0;
+    var currentQuiz = {};
+
+    // 按权重、且排除指定的排除类型（通常是上一题类型），随机挑选本题类型
+    // 加号题不涉及变号，教学价值最低，权重调低；减号/乘法分配律/加括号都是变号易错点，权重调高
+    function pickQuizType(excludeType) {
+        var weights = { plus: 2, sub: 4, mul: 4, bracket: 4 };
+        var pool = [];
+        for (var t in weights) {
+            if (t === excludeType) continue; // 排除上一题类型，强制不连续同型
+            for (var i = 0; i < weights[t]; i++) pool.push(t);
+        }
+        return pool[Math.floor(Math.random() * pool.length)];
+    }
+
+    // 智能动态生成题目函数（excludeType 用于避免和上一题类型相同）
+    function makeRandomQuiz(excludeType) {
+        var type = pickQuizType(excludeType);
+        
+        var letterPairs = [
+            {v1: "a²", v2: "b", v3: "ab"},
+            {v1: "x²", v2: "y", v3: "xy"},
+            {v1: "m²", v2: "n", v3: "mn"},
+            {v1: "p²", v2: "q", v3: "pq"}
+        ];
+        var pair = letterPairs[Math.floor(Math.random() * letterPairs.length)];
+        
+        // 随机生成基础系数（2到9之间的正整数，避免1和0带来排版歧义）
+        var n1 = Math.floor(Math.random() * 7) + 2;
+        var n2 = Math.floor(Math.random() * 7) + 2;
+        var n3 = Math.floor(Math.random() * 7) + 2;
+        var n4 = Math.floor(Math.random() * 7) + 2;
+        
+        // 随机生成括号内的正负号
+        var sign1 = Math.random() > 0.5 ? 1 : -1;
+        var sign2 = Math.random() > 0.5 ? 1 : -1;
+
+        var quiz = { type: type };
+
+        if (type === "plus" || type === "sub") {
+            // 普通加减去括号题型：(n1*v1 ± n2*v2) ± (n3*v1 ± n4*v2)
+            var p1_sign = sign1 > 0 ? "+" : "-";
+            var p2_sign = sign2 > 0 ? "+" : "-";
+            var middle_sign = type === "plus" ? "+" : "-";
+            
+            quiz.orig = "(" + n1 + pair.v1 + " " + p1_sign + " " + n2 + pair.v2 + ") " + middle_sign + " (" + n3 + pair.v1 + " " + p2_sign + " " + n4 + pair.v2 + ")";
+            
+            quiz.s1_labels = [pair.v1, pair.v2, pair.v1, pair.v2];
+            
+            // 第一步去括号的系数计算
+            var c1 = n1;
+            var c2 = sign1 * n2;
+            var c3 = type === "plus" ? n3 : -n3;
+            var c4 = type === "plus" ? (sign2 * n4) : (-sign2 * n4);
+            quiz.s1_coeffs = [c1, c2, c3, c4];
+            
+            // 第二步合并同类项结果
+            quiz.s2_labels = [pair.v1, pair.v2];
+            quiz.s2_coeffs = [c1 + c3, c2 + c4];
+            
+        } else if (type === "mul") {
+            // 乘法分配律题型：n1*x(x ± n2*y) - n3*y(n4*x ± 1*y)  (这里强制中间为减，最容易考变号)
+            var p1_sign = sign1 > 0 ? "+" : "-";
+            var p2_sign = sign2 > 0 ? "+" : "-";
+            
+            // 构造形如：2x(x - 3y) - 3y(2x + y)
+            var varX = pair.v1.replace("²", ""); // 获取基础字母x或a
+            var varY = pair.v2;
+            
+            quiz.orig = n1 + varX + "(" + varX + " " + p1_sign + " " + n2 + varY + ") - " + n3 + varY + "(" + n4 + varX + " " + p2_sign + " " + varY + ")";
+            
+            quiz.s1_labels = [pair.v1, pair.v3, pair.v3, pair.v2 + "²"]; // x², xy, xy, y²
+            
+            // 第一步乘法展开系数
+            var c1 = n1;
+            var c2 = n1 * sign1 * n2;
+            var c3 = -n3 * n4;
+            var c4 = -n3 * sign2 * 1;
+            quiz.s1_coeffs = [c1, c2, c3, c4];
+            
+            // 第二步合并结果
+            quiz.s2_labels = [pair.v1, pair.v3, pair.v2 + "²"]; // x², xy, y²
+            quiz.s2_coeffs = [c1, c2 + c3, c4];
+
+        } else {
+            // 加括号题型（"去括号"的逆向练习）：
+            // 给出一个已经写开的三项式 T1 (sign2)T2 (sign3)T3，
+            // 要求把后两项添加括号，且括号前面是随机指定的 frontSign，
+            // 学生需要填写括号内两项各自应该带的符号。
+            // 核心规则（与去括号相反）：
+            //   括号前是"+"号：内部符号照抄，不变号
+            //   括号前是"-"号：内部符号要全部取反
+            var t1 = n1; // 第一项，放在括号外，约定为正，不需要判断符号
+            var t2 = sign1 * n2;
+            var t3 = sign2 * n3;
+
+            quiz.term_labels = [pair.v1, pair.v3, pair.v2]; // 三项互不相同的单项式：如 x², xy, y
+            quiz.term_coeffs = [t1, t2, t3];
+
+            quiz.orig = n1 + pair.v1 + " " + (t2 >= 0 ? "+" : "-") + " " + Math.abs(t2) + pair.v3 + " " + (t3 >= 0 ? "+" : "-") + " " + Math.abs(t3) + pair.v2;
+
+            // 随机指定括号前面的符号
+            quiz.frontSign = Math.random() > 0.5 ? "+" : "-";
+
+            // 计算括号内两项应填的正确符号
+            var flip = (quiz.frontSign === "-");
+            quiz.inner_signs = [
+                flip ? (t2 >= 0 ? "-" : "+") : (t2 >= 0 ? "+" : "-"),
+                flip ? (t3 >= 0 ? "-" : "+") : (t3 >= 0 ? "+" : "-")
+            ];
+        }
+        
+        return quiz;
+    }
+
+    function updateScoreBoard() {
+        var rate = totalAnswered > 0 ? Math.round((correctCount / totalAnswered) * 100) : 0;
+        var rateText = totalAnswered > 0 ? (rate + "%") : "--";
+        document.getElementById('scoreStamp').innerText = rateText;
+        document.getElementById('scoreText').innerText = "已做题 " + totalAnswered + " · 正确率 " + rateText;
+    }
+
+    function loadQuiz() {
+        // 调用随机出题引擎：排除上一题类型（避免连续同型），并尽量避免与上一题完全相同
+        var prevType = (currentQuiz && currentQuiz.type) ? currentQuiz.type : null;
+        var nextQuiz;
+        do {
+            nextQuiz = makeRandomQuiz(prevType);
+        } while (currentQuiz && currentQuiz.orig === nextQuiz.orig);
+        currentQuiz = nextQuiz;
+        
+        document.getElementById('rawExpr').innerText = currentQuiz.orig;
+        document.getElementById('resultMessage').style.display = 'none';
+        document.getElementById('submitBtn').disabled = false;
+
+        if (currentQuiz.type === "bracket") {
+            // ===== 加括号题型：只有一步，隐藏第二步区域 =====
+            document.getElementById('step1Label').innerText = '请添加括号：把后两项括起来，使括号前面是【' + currentQuiz.frontSign + '】号';
+            document.getElementById('step2Wrapper').style.display = 'none';
+
+            var t = currentQuiz.term_coeffs;
+            var lbl = currentQuiz.term_labels;
+            var s1Html = '＝ ' +
+                Math.abs(t[0]) + lbl[0] + ' ' + currentQuiz.frontSign + ' ( ' +
+                '<select id="b_sign1"><option value="">?</option><option value="+">+</option><option value="-">-</option></select> ' +
+                Math.abs(t[1]) + lbl[1] + ' ' +
+                '<select id="b_sign2"><option value="">?</option><option value="+">+</option><option value="-">-</option></select> ' +
+                Math.abs(t[2]) + lbl[2] + ' )';
+
+            document.getElementById('step1Box').innerHTML = s1Html;
+            return;
+        }
+
+        // ===== 其余题型（去括号系列）：恢复默认两步布局 =====
+        document.getElementById('step1Label').innerText = '第一步：展开式（去括号/分配律）';
+        document.getElementById('step2Label').innerText = '第二步：合并同类项（最终结果）';
+        document.getElementById('step2Wrapper').style.display = '';
+
+        // 动态渲染第一步 HTML
+        var s1Html = '＝ ' +
+            '<span>' + Math.abs(currentQuiz.s1_coeffs[0]) + currentQuiz.s1_labels[0] + '</span> ' +
+            '<select id="s1_opt1"><option value="">?</option><option value="+">+</option><option value="-">-</option></select> ' +
+            '<span>' + Math.abs(currentQuiz.s1_coeffs[1]) + currentQuiz.s1_labels[1] + '</span> ' +
+            '<select id="s1_opt2"><option value="">?</option><option value="+">+</option><option value="-">-</option></select> ' +
+            '<span>' + Math.abs(currentQuiz.s1_coeffs[2]) + currentQuiz.s1_labels[2] + '</span> ' +
+            '<select id="s1_opt3"><option value="">?</option><option value="+">+</option><option value="-">-</option></select> ' +
+            '<span>' + Math.abs(currentQuiz.s1_coeffs[3]) + currentQuiz.s1_labels[3] + '</span>';
+        
+        document.getElementById('step1Box').innerHTML = s1Html;
+
+        // 动态渲染第二步 HTML
+        // 统一结构：每一项都是"符号下拉框 + 数字输入框 + 字母"，包括第一项
+        // （修复旧版第一项没有符号框、导致结果为负数时无法通过下拉选择负号的问题）
+        var s2Html = '＝ ';
+        for (var i = 0; i < currentQuiz.s2_coeffs.length; i++) {
+            s2Html += '<select id="s2_sign' + i + '"><option value="">?</option><option value="+">+</option><option value="-">-</option></select> ' +
+                      '<input type="number" id="s2_num' + i + '" placeholder="填数字" min="0"> ' +
+                      '<span>' + currentQuiz.s2_labels[i] + '</span> ';
+        }
+        
+        document.getElementById('step2Box').innerHTML = s2Html;
+    }
+
+    // 清除所有 select/input 上一次遗留的错误高亮
+    function clearFieldErrors() {
+        var fields = document.querySelectorAll('#step1Box select, #step2Box select, #step2Box input');
+        for (var i = 0; i < fields.length; i++) {
+            fields[i].classList.remove('field-error');
+        }
+    }
+
+    function markError(id) {
+        var el = document.getElementById(id);
+        if (el) el.classList.add('field-error');
+    }
+
+    function checkAnswer() {
+        var msgZone = document.getElementById('resultMessage');
+        msgZone.style.display = 'block';
+        clearFieldErrors();
+
+        // ===== 加括号题型：独立判分逻辑（只有两个符号下拉框） =====
+        if (currentQuiz.type === "bracket") {
+            var b1 = document.getElementById('b_sign1').value;
+            var b2 = document.getElementById('b_sign2').value;
+
+            if (!b1 || !b2) {
+                if (!b1) markError('b_sign1');
+                if (!b2) markError('b_sign2');
+                msgZone.className = "result error";
+                msgZone.innerText = "还有符号没选，请检查完整后再提交！";
+                return;
+            }
+
+            totalAnswered++;
+
+            var ok1 = (b1 === currentQuiz.inner_signs[0]);
+            var ok2 = (b2 === currentQuiz.inner_signs[1]);
+
+            if (!ok1 || !ok2) {
+                if (!ok1) markError('b_sign1');
+                if (!ok2) markError('b_sign2');
+                msgZone.className = "result error";
+                if (currentQuiz.frontSign === "-") {
+                    msgZone.innerText = "❌ 添号错啦！括号前面是负号时，括号内的每一项符号都要【和原来相反】！（红框处为错误符号）";
+                } else {
+                    msgZone.innerText = "❌ 添号错啦！括号前面是正号时，括号内的每一项符号要【和原来保持一致】，不要变号！（红框处为错误符号）";
+                }
+                updateScoreBoard();
+                return;
+            }
+
+            correctCount++;
+            msgZone.className = "result success";
+            msgZone.innerText = "🥳 完全正确！加括号的变号规律你已经掌握了！";
+            updateScoreBoard();
+            document.getElementById('submitBtn').disabled = true;
+            setTimeout(loadQuiz, 1800);
+            return;
+        }
+
+        var s1_o1 = document.getElementById('s1_opt1').value;
+        var s1_o2 = document.getElementById('s1_opt2').value;
+        var s1_o3 = document.getElementById('s1_opt3').value;
+
+        // 收集第二步所有项的填写值（数量随题型而定）
+        var s2_signs = [];
+        var s2_nums = [];
+        for (var i = 0; i < currentQuiz.s2_coeffs.length; i++) {
+            s2_signs.push(document.getElementById('s2_sign' + i).value);
+            s2_nums.push(document.getElementById('s2_num' + i).value);
+        }
+
+        // 先检查是否有空缺（未完整作答不计入统计，只提示补全并标红空缺项）
+        var hasEmpty = false;
+        if (!s1_o1) { hasEmpty = true; markError('s1_opt1'); }
+        if (!s1_o2) { hasEmpty = true; markError('s1_opt2'); }
+        if (!s1_o3) { hasEmpty = true; markError('s1_opt3'); }
+        for (var i = 0; i < s2_nums.length; i++) {
+            // 系数为0的项，符号允许不选；但数字必须填
+            if (s2_nums[i] === "") { hasEmpty = true; markError('s2_num' + i); }
+            if (currentQuiz.s2_coeffs[i] !== 0 && s2_signs[i] === "") { hasEmpty = true; markError('s2_sign' + i); }
+        }
+
+        if (hasEmpty) {
+            msgZone.className = "result error";
+            msgZone.innerText = "还有空格或符号没填写，请检查完整后再提交！（红框处待补全）";
+            return;
+        }
+
+        // 走到这里说明是一次"完整"的作答，计入统计
+        totalAnswered++;
+
+        // 校验第一步（逐个比对，精确标红出错的具体符号框）
+        var ans1 = [
+            currentQuiz.s1_coeffs[1] >= 0 ? '+' : '-',
+            currentQuiz.s1_coeffs[2] >= 0 ? '+' : '-',
+            currentQuiz.s1_coeffs[3] >= 0 ? '+' : '-'
+        ];
+        var s1_vals = [s1_o1, s1_o2, s1_o3];
+        var s1_ids = ['s1_opt1', 's1_opt2', 's1_opt3'];
+        var step1Correct = true;
+        for (var i = 0; i < 3; i++) {
+            if (s1_vals[i] !== ans1[i]) {
+                step1Correct = false;
+                markError(s1_ids[i]);
+            }
+        }
+
+        if (!step1Correct) {
+            msgZone.className = "result error";
+            if (currentQuiz.type === "mul") {
+                msgZone.innerText = "❌ 第一步展开错啦！注意：减号后面的单项式乘进括号时，括号内的【每一项都要乘以它，并注意负数相乘变号】！（红框处为错误符号）";
+            } else if (currentQuiz.type === "sub") {
+                msgZone.innerText = "❌ 第一步错啦！当前是减号题，减号后面的整个括号去掉时，内部每一项都要【变号】！（红框处为错误符号）";
+            } else {
+                msgZone.innerText = "❌ 第一步去括号错啦！加号后面的括号去掉时，直接保留原式符号，【不需要变号】。（红框处为错误符号）";
+            }
+            updateScoreBoard();
+            return;
+        }
+
+        // 校验第二步：系数为0时忽略符号选择，只看数字是否为0（逐项精确标红）
+        var step2Correct = true;
+        for (var i = 0; i < currentQuiz.s2_coeffs.length; i++) {
+            var target = currentQuiz.s2_coeffs[i];
+            if (target === 0) {
+                if (parseInt(s2_nums[i]) !== 0) {
+                    step2Correct = false;
+                    markError('s2_num' + i);
+                }
+            } else {
+                var expectSign = target >= 0 ? '+' : '-';
+                var signOk = (s2_signs[i] === expectSign);
+                var numOk = (parseInt(s2_nums[i]) === Math.abs(target));
+                if (!signOk) { step2Correct = false; markError('s2_sign' + i); }
+                if (!numOk) { step2Correct = false; markError('s2_num' + i); }
+            }
+        }
+
+        if (!step2Correct) {
+            msgZone.className = "result error";
+            msgZone.innerText = "❌ 展开步做得很好！但最后合并同类项时算错啦，请仔细核对系数加减。（红框处为错误位置）";
+            updateScoreBoard();
+            return;
+        }
+
+        // 全部答对逻辑
+        correctCount++;
+        msgZone.className = "result success";
+        msgZone.innerText = "🥳 完全正确！完美的逻辑与运算能力！";
+        updateScoreBoard();
+
+        // 提交按钮禁用，防止 1.8 秒跳题窗口内重复提交刷分
+        var btn = document.getElementById('submitBtn');
+        btn.disabled = true;
+
+        // 1.8秒后自动刷新下一题（永远是全新的题）
+        setTimeout(loadQuiz, 1800);
+    }
+
+    // 页面安全启动
+    loadQuiz();
+</script>
+
+</body>
+</html>
