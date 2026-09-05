@@ -58,9 +58,27 @@
   .stepper button:hover{filter:brightness(1.2);}
   .stepper .val{font-family:var(--font-mono);font-weight:700;font-size:1rem;min-width:22px;text-align:center;}
 
+  .gridouter{position:relative;}
   .gridwrap{
-    max-height:360px; overflow-y:auto; border:1px solid var(--line); border-radius:10px;
+    max-height:450px; overflow-y:auto; border:1px solid var(--line); border-radius:10px;
     background:var(--panel-2); padding:6px; position:relative;
+  }
+  .jumpBtn{
+    position:absolute; top:12px; left:50%; z-index:5;
+    display:flex; align-items:center; justify-content:center;
+    width:38px; height:38px; border-radius:50%; border:1px solid var(--snake-dim);
+    background:#0f2418; color:var(--snake); cursor:pointer;
+    font-size:1.1rem; line-height:1;
+    box-shadow:0 4px 12px rgba(0,0,0,.4);
+    opacity:0; pointer-events:none; transform:translate(-50%,-6px);
+    transition:opacity .18s, transform .18s, background .15s;
+  }
+  .jumpBtn.show{opacity:1; pointer-events:auto; transform:translate(-50%,0);}
+  .jumpBtn:hover{filter:brightness(1.25);}
+  .jumpBtn.folded{color:var(--amber); border-color:var(--amber-dim);}
+  .fold-divider{
+    text-align:center; color:var(--muted); font-family:var(--font-mono); font-size:.72rem;
+    padding:9px 0; margin:4px 0; border-top:1px dashed var(--line); border-bottom:1px dashed var(--line);
   }
   .gridrow{display:grid; align-items:stretch; gap:4px; margin-bottom:4px;}
   .arrow{
@@ -80,33 +98,40 @@
   .cell.guess-wrong{outline:2px dashed var(--bad);}
   .cell.guess-right{outline:3px solid var(--good); box-shadow:0 0 10px rgba(74,222,128,.55); color:var(--good);}
   .cell.echo{outline:2px solid #5aa9ff; box-shadow:0 0 8px rgba(90,169,255,.55); color:#5aa9ff;}
+  .cell.formula-cell{
+    background:rgba(255,205,60,.09); border:1px dashed rgba(255,205,60,.55);
+    color:var(--amber); font-size:.72rem;
+  }
 
   .quiz{margin-top:0;}
-  .target{
-    display:flex; align-items:center; gap:12px; margin-bottom:14px;
+  .quizbar{display:flex; align-items:center; gap:14px; flex-wrap:wrap;}
+  .num-wrap{position:relative; flex:none;}
+  .num{
+    font-family:var(--font-mono); font-weight:700; font-size:2.1rem; color:var(--apple);
+    background:var(--panel-2); border:1px solid var(--line); border-radius:12px; padding:6px 16px;
   }
-  .target .num{
-    font-family:var(--font-mono); font-weight:700; font-size:2.4rem; color:var(--apple);
-    background:var(--panel-2); border:1px solid var(--line); border-radius:12px; padding:6px 18px;
-  }
-  .target .q{font-size:.92rem;color:var(--muted);line-height:1.5;}
-  .guessrow{display:flex; flex-wrap:wrap; gap:18px; align-items:flex-end; margin-bottom:12px;}
-  .guessrow label{font-size:.78rem;color:var(--muted);display:block;margin-bottom:6px;}
-  .rowinput{
-    background:var(--panel-2); border:1px solid var(--line); color:var(--text);
-    font-family:var(--font-mono); font-weight:700; font-size:1.1rem;
-    border-radius:9px; padding:8px 10px; width:90px;
-  }
-  .colbtns{display:flex;gap:6px;}
+  .q{font-size:.88rem;color:var(--muted);line-height:1.4; flex:1 1 150px; min-width:130px;}
+  .colbtns{display:flex;gap:6px; flex:none;}
   .colbtn{
     width:40px;height:40px;border-radius:9px;border:1px solid var(--line);background:var(--panel-2);
     color:var(--text); font-family:var(--font-mono); font-weight:700; font-size:1rem; cursor:pointer;
   }
   .colbtn.selected{background:var(--snake);color:#04150c;border-color:var(--snake);}
-  .btnrow{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;}
+  .stamp{
+    position:absolute; top:50%; left:50%; width:78px; height:78px; border-radius:50%;
+    border:4px solid var(--good); display:flex; flex-direction:column; align-items:center; justify-content:center;
+    font-family:var(--font-display); font-weight:800; color:var(--good); background:rgba(10,25,15,.85);
+    transform:translate(-50%,-50%) rotate(-16deg) scale(0); opacity:0; pointer-events:none;
+    transition:transform .35s cubic-bezier(.34,1.56,.64,1), opacity .2s;
+    text-align:center; line-height:1.1; z-index:2;
+  }
+  .stamp.show{transform:translate(-50%,-50%) rotate(-16deg) scale(1); opacity:1;}
+  .stamp.bad{border-color:var(--bad); color:var(--bad); background:rgba(30,10,12,.85);}
+  .stamp .icon{font-size:1.5rem;line-height:1;}
+  .stamp .word{font-size:.6rem;letter-spacing:.04em;margin-top:2px;}
   button.btn{
     font-family:var(--font-display); font-weight:700; font-size:.88rem; border:none;
-    border-radius:9px; padding:9px 16px; cursor:pointer; transition:.15s transform, .15s filter;
+    border-radius:9px; padding:9px 16px; cursor:pointer; transition:.15s transform, .15s filter; flex:none;
   }
   button.btn:hover{transform:translateY(-1px);filter:brightness(1.1);}
   button.btn.primary{background:var(--snake);color:#04150c;}
@@ -125,6 +150,16 @@
   }
   .methodbtn.active{opacity:1;}
   .methodtext{white-space:pre-line;}
+  .cycle-summary-row{
+    display:grid; align-items:stretch; gap:4px; margin:2px 0 8px;
+  }
+  .summary-lead{}
+  .summary-cell{
+    background:rgba(255,205,60,.09); border:1px dashed rgba(255,205,60,.55); border-radius:6px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    font-family:var(--font-mono); font-size:.68rem; font-weight:700; color:var(--amber);
+    padding:4px 2px; line-height:1.35; min-height:34px;
+  }
   footer{text-align:center;color:var(--muted);font-size:.68rem;margin-top:16px;font-family:var(--font-mono);}
 </style>
 </head>
@@ -162,21 +197,20 @@
   </section>
 
   <section>
-    <div class="gridwrap" id="gridwrap"></div>
+    <div class="gridouter">
+      <div class="gridwrap" id="gridwrap"></div>
+      <button class="jumpBtn" id="btnJumpTop" title="折叠中间过程">↑</button>
+    </div>
   </section>
 
   <section class="quiz">
-    <div class="target">
-      <div class="num" id="targetNum">87</div>
-      <div class="q">这个数字会落在<b style="color:var(--snake)">第几列</b>？</div>
-    </div>
-    <div class="guessrow">
-      <div>
-        <label>第几列</label>
-        <div class="colbtns" id="colBtns"></div>
+    <div class="quizbar">
+      <div class="num-wrap">
+        <div class="num" id="targetNum">87</div>
+        <div class="stamp" id="stamp"></div>
       </div>
-    </div>
-    <div class="btnrow">
+      <div class="q">这个数字会落在<b style="color:var(--snake)">第几列</b>？</div>
+      <div class="colbtns" id="colBtns"></div>
       <button class="btn primary" id="btnCheck">检查答案</button>
       <button class="btn ghost" id="btnNext">换一题</button>
     </div>
@@ -191,7 +225,7 @@
   const DEMO_ROWS = 5;
   const MAX_N = 1000;
 
-  const state = { cols:4, startCol:3, startDir:'right', target:0, guessCol:null, revealedRows:DEMO_ROWS, map:null, valueGrid:null, method:1, showChunks:false };
+  const state = { cols:4, startCol:3, startDir:'right', target:0, guessCol:null, revealedRows:DEMO_ROWS, map:null, valueGrid:null, method:1, showChunks:false, folded:false, lastCorrect:null };
 
   function opposite(dir){ return dir==='right' ? 'left' : 'right'; }
 
@@ -203,18 +237,20 @@
 
   function computeMap(){
     const { cols, startCol, startDir } = state;
-    const map = new Array(MAX_N+1);
+    // build past MAX_N so the generalized cycle that trails the answer always exists
+    const BUILD_TO = MAX_N + 4*cols + 4;
+    const map = new Array(BUILD_TO+1);
     const valueGrid = {};
     let num = 1;
     if(startDir==='right'){
-      for(let c=startCol; c<=cols && num<=MAX_N; c++){
+      for(let c=startCol; c<=cols && num<=BUILD_TO; c++){
         map[num] = { row:1, col:c };
         valueGrid[1] = valueGrid[1] || {};
         valueGrid[1][c] = num;
         num++;
       }
     }else{
-      for(let c=startCol; c>=1 && num<=MAX_N; c--){
+      for(let c=startCol; c>=1 && num<=BUILD_TO; c--){
         map[num] = { row:1, col:c };
         valueGrid[1] = valueGrid[1] || {};
         valueGrid[1][c] = num;
@@ -222,17 +258,17 @@
       }
     }
     let row = 2;
-    while(num<=MAX_N){
+    while(num<=BUILD_TO){
       const dir = rowDirection(row);
       if(dir==='right'){
-        for(let c=1; c<=cols && num<=MAX_N; c++){
+        for(let c=1; c<=cols && num<=BUILD_TO; c++){
           map[num] = { row, col:c };
           valueGrid[row] = valueGrid[row] || {};
           valueGrid[row][c] = num;
           num++;
         }
       }else{
-        for(let c=cols; c>=1 && num<=MAX_N; c--){
+        for(let c=cols; c>=1 && num<=BUILD_TO; c--){
           map[num] = { row, col:c };
           valueGrid[row] = valueGrid[row] || {};
           valueGrid[row][c] = num;
@@ -245,11 +281,45 @@
     state.valueGrid = valueGrid;
   }
 
+  function answerBlock(){
+    // The answer's own complete cycle, defined by the NUMBERS (8n+1 … 8n+8),
+    // not by physical rows — the block can start mid-row.
+    if(!state.lastCorrect) return null;
+    const cycle = 2*state.cols;
+    const N = state.target;
+    const start = Math.floor((N-1)/cycle)*cycle + 1;
+    return { start, end: start + cycle - 1, cycle };
+  }
+
+  function foldRange(){
+    if(!state.folded) return null;
+    const blk = answerBlock();
+    if(!blk) return null;
+    const demoEnd = 2*blk.cycle;              // keep the first two complete cycles
+    const demoLastRow = state.map[demoEnd] ? state.map[demoEnd].row : DEMO_ROWS;
+    const blockFirstRow = state.map[blk.start].row;
+    if(blockFirstRow <= demoLastRow+1) return null; // nothing worth folding
+    return { start: demoLastRow+1, end: blockFirstRow-1 };
+  }
+
   function renderGrid(uptoRow){
     const gridwrap = document.getElementById('gridwrap');
     gridwrap.innerHTML = '';
     const cycle = 2*state.cols;
+    const fold = foldRange();
+    const blk = answerBlock();
+    // once an answer is shown, the card stops right after the generalized cycle
+    const formulaEnd = blk ? blk.end + cycle : null;
     for(let r=1; r<=uptoRow; r++){
+      if(fold && r>=fold.start && r<=fold.end){
+        if(r===fold.start){
+          const divider = document.createElement('div');
+          divider.className = 'fold-divider';
+          divider.textContent = `⋯ 已折叠 ${fold.end-fold.start+1} 行，规律不变 ⋯`;
+          gridwrap.appendChild(divider);
+        }
+        continue;
+      }
       const rowEl = document.createElement('div');
       rowEl.className = 'gridrow';
       rowEl.style.gridTemplateColumns = `24px repeat(${state.cols}, 1fr)`;
@@ -264,6 +334,15 @@
         cell.id = `cell-${r}-${c}`;
         const v = (state.valueGrid[r] && state.valueGrid[r][c]) ? state.valueGrid[r][c] : null;
         if(v===null){ cell.classList.add('empty'); cell.textContent='·'; }
+        else if(blk && v > blk.end && v <= formulaEnd){
+          // the cycle immediately after the answer's, written generically —
+          // it continues the snake from exactly where the real numbers stopped
+          cell.classList.add('formula-cell');
+          cell.textContent = `${cycle}n+${v - blk.end}`;
+        }
+        else if(blk && v > formulaEnd){
+          cell.classList.add('empty'); cell.textContent = '';
+        }
         else{
           cell.textContent = v;
           if(state.showChunks){
@@ -321,19 +400,105 @@
     return `每 ${cycle} 个数字就会重复一次列的位置（一行 ${cols} 格，一来一回正好是 ${cols}×2 = ${cycle} 个）。\n${N} ÷ ${cycle} 的余数是 ${r}（正好整除就当余数是 ${cycle}）。\n所以 ${N} 和数字 ${r} 落在同一列——数字 ${r} 在第${rCell.row}行第${rCell.col}列，所以 ${N} 也在第 ${rCell.col} 列。`;
   }
 
+  // ---- sound effects (synthesized, no audio files needed) ----
+  let audioCtx = null;
+  function getCtx(){
+    if(!audioCtx){ audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }
+    if(audioCtx.state==='suspended') audioCtx.resume();
+    return audioCtx;
+  }
+  function playCorrectSound(){
+    try{
+      const ctx = getCtx(); const t0 = ctx.currentTime;
+      [880,1318.5].forEach((f,i)=>{
+        const osc = ctx.createOscillator(), gain = ctx.createGain();
+        const t = t0+i*0.09;
+        osc.type = 'sine'; osc.frequency.setValueAtTime(f, t);
+        gain.gain.setValueAtTime(0.0001, t);
+        gain.gain.exponentialRampToValueAtTime(0.22, t+0.01);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t+0.28);
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.start(t); osc.stop(t+0.3);
+      });
+    }catch(e){}
+  }
+  function playWrongSound(){
+    try{
+      const ctx = getCtx(); const t0 = ctx.currentTime;
+      const osc = ctx.createOscillator(), gain = ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(160, t0);
+      osc.frequency.exponentialRampToValueAtTime(90, t0+0.2);
+      gain.gain.setValueAtTime(0.0001, t0);
+      gain.gain.exponentialRampToValueAtTime(0.16, t0+0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0+0.25);
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.start(t0); osc.stop(t0+0.26);
+    }catch(e){}
+  }
+  function showStamp(isRight){
+    const el = document.getElementById('stamp');
+    el.className = 'stamp show' + (isRight?'':' bad');
+    el.innerHTML = isRight
+      ? '<span class="icon">✓</span><span class="word">对啦</span>'
+      : '<span class="icon">✗</span><span class="word">再想想</span>';
+  }
+  function hideStamp(){
+    const el = document.getElementById('stamp');
+    el.className = 'stamp';
+    el.innerHTML = '';
+  }
+
   function newQuestion(){
     state.target = Math.floor(Math.random()*MAX_N)+1;
     state.method = 1;
     state.showChunks = false;
+    state.folded = false;
+    state.lastCorrect = null;
+    state.lastIsRight = null;
     document.getElementById('targetNum').textContent = state.target;
     state.guessCol = null;
     [...document.getElementById('colBtns').children].forEach(ch=>ch.classList.remove('selected'));
     document.getElementById('feedback').className = 'feedback';
     document.getElementById('feedback').innerHTML = '';
+    document.getElementById('btnJumpTop').classList.remove('show');
+    updateFoldButton();
+    hideStamp();
     state.revealedRows = DEMO_ROWS;
-    renderGrid(state.revealedRows);
+    renderGrid(state.revealedRows); // also clears any previous summary row, since it fully rebuilds gridwrap
     clearHighlights();
   }
+
+  function renderAnswerState(){
+    // rebuilds the grid (respecting current fold state) and re-applies everything
+    // that renderGrid's innerHTML reset would otherwise wipe out.
+    const correct = state.lastCorrect;
+    renderGrid(state.revealedRows);
+    clearHighlights();
+    const correctCell = document.getElementById(`cell-${correct.row}-${correct.col}`);
+    if(correctCell) correctCell.classList.add(state.lastIsRight ? 'guess-right' : 'correct');
+    if(state.method===2) updateMethodText();
+    return correctCell;
+  }
+
+  function updateFoldButton(){
+    const btn = document.getElementById('btnJumpTop');
+    btn.classList.toggle('folded', state.folded);
+    btn.textContent = state.folded ? '↓' : '↑';
+    btn.title = state.folded ? '展开完整过程' : '折叠中间过程';
+  }
+
+  document.getElementById('btnJumpTop').addEventListener('click', ()=>{
+    if(!state.lastCorrect) return;
+    state.folded = !state.folded;
+    updateFoldButton();
+    const correctCell = renderAnswerState();
+    if(state.folded){
+      document.getElementById('gridwrap').scrollTo({top:0, behavior:'smooth'});
+    }else if(correctCell){
+      correctCell.scrollIntoView({behavior:'smooth', block:'center'});
+    }
+  });
 
   function clearHighlights(){
     document.querySelectorAll('.cell').forEach(c=>{
@@ -434,19 +599,21 @@
     let echoR = state.target % cycle;
     if(echoR===0) echoR = cycle;
     const echoRow = (echoR===state.target) ? 0 : state.map[echoR].row;
-    const uptoRow = Math.max(correct.row, echoRow, state.revealedRows);
-    state.revealedRows = uptoRow;
+    state.lastCorrect = correct;
+    state.lastIsRight = (guessCol===correct.col);
+    // extend far enough to cover the answer's whole cycle plus the generalized one that follows
+    const blk = answerBlock();
+    const tailRow = state.map[blk.end + cycle] ? state.map[blk.end + cycle].row : correct.row;
+    state.revealedRows = Math.max(correct.row, echoRow, tailRow, state.revealedRows);
     state.showChunks = true; // cycle colors only revealed once an answer is checked
-    renderGrid(state.revealedRows);
-    clearHighlights();
-    const isRight = (guessCol===correct.col);
-    const correctCell = document.getElementById(`cell-${correct.row}-${correct.col}`);
-    if(isRight){
-      if(correctCell) correctCell.classList.add('guess-right');
-    }else{
-      if(correctCell) correctCell.classList.add('correct');
-    }
+    const isRight = state.lastIsRight;
+    const correctCell = renderAnswerState();
     renderFeedback(isRight, correct);
+    if(isRight){ playCorrectSound(); } else { playWrongSound(); }
+    showStamp(isRight);
+    if(state.revealedRows > DEMO_ROWS){
+      document.getElementById('btnJumpTop').classList.add('show');
+    }
     if(correctCell) correctCell.scrollIntoView({behavior:'smooth', block:'center'});
   });
 
