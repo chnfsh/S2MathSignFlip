@@ -32,7 +32,7 @@
       var(--bg);
     color:var(--text);
     font-family:var(--font-body);
-    padding:24px 16px 50px;
+    padding:18px 16px 28px;
   }
   .wrap{max-width:760px;margin:0 auto;}
   header{margin-bottom:4px;}
@@ -44,7 +44,7 @@
   section{
     background:linear-gradient(180deg,var(--panel),var(--panel-2));
     border:1px solid var(--line); border-radius:var(--radius);
-    padding:16px 18px; margin-top:14px;
+    padding:14px 18px; margin-top:10px;
   }
 
   /* ---- config ---- */
@@ -74,8 +74,8 @@
   .cbarInner.urgent{background:var(--bad);}
 
   /* ---- stage ---- */
-  .stage{text-align:center;}
-  .target-wrap{position:relative;display:inline-block;margin:4px 0 22px;}
+  .stage{text-align:center;position:relative;}
+  .target-wrap{position:relative;display:inline-block;margin:2px 0 16px;}
   .target{
     font-family:var(--font-mono);font-weight:700;
     font-size:clamp(3rem,9vw,4.6rem);line-height:1;color:var(--lamp);
@@ -131,10 +131,10 @@
     0%,100%{ box-shadow:0 0 10px rgba(255,255,255,.30); }
     50%    { box-shadow:0 0 26px rgba(255,255,255,.70); }
   }
+  /* the 0s reveal quietly: the digit turns white, the circle itself stays dark */
   .bit.solved-off .dot{
-    border-color:#ffffff;color:#ffffff;background:#26264a;
-    animation:whitePulse 1.5s ease-in-out infinite;
-    animation-delay:calc(var(--i,0) * .11s);
+    color:#ffffff;
+    text-shadow:0 0 10px rgba(255,255,255,.75);
   }
 
   /* each lit card/dot joins the wave slightly later, so the light travels left to right */
@@ -161,7 +161,7 @@
   /* ---- flip cards ---- */
   .lamps{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
   .lamp{
-    width:84px;height:104px;perspective:700px;cursor:pointer;user-select:none;flex:none;
+    width:84px;height:96px;perspective:700px;cursor:pointer;user-select:none;flex:none;
   }
   .lamp.locked{cursor:default;}
   .lamp-inner{
@@ -203,18 +203,134 @@
     box-shadow:0 0 14px rgba(90,200,255,.6);
   }
   .bitlabel{
-    margin-top:10px;font-family:var(--font-mono);font-size:.74rem;color:var(--muted);letter-spacing:.1em;
+    margin-top:24px;font-family:var(--font-mono);font-size:1.9rem;color:var(--muted);
+    display:flex;align-items:center;justify-content:center;gap:10px;
   }
-  .bitlabel b{color:var(--cool);}
+  .bitlabel .blabel{font-size:.74rem;letter-spacing:.1em;}
+  .bstring{display:inline-flex;gap:4px;}
+  .bdigit{
+    display:inline-block;min-width:.72em;text-align:center;font-weight:700;
+    color:#3c3a66;transition:color .25s, text-shadow .25s, transform .25s;
+  }
+  .bdigit.landed{ transform:scale(1.25); }
+  .bdigit.landed.one{
+    background:linear-gradient(90deg,#ff4d9d,#ffc94d,#4ade80,#5ac8ff,#a855f7,#ff4d9d);
+    background-size:300% 100%;
+    -webkit-background-clip:text;background-clip:text;
+    -webkit-text-fill-color:transparent;color:transparent;
+    animation:neonSweep 2.4s linear infinite;
+  }
+  .bdigit.landed.zero{ color:#ffffff; text-shadow:0 0 10px rgba(255,255,255,.75); }
+
+  /* a digit physically travels from its round lamp down into the binary string */
+  .flyer{
+    position:absolute;z-index:9;pointer-events:none;
+    font-family:var(--font-mono);font-weight:700;font-size:1.5rem;
+    transition:transform .5s cubic-bezier(.5,-0.2,.3,1.2), opacity .5s;
+  }
+  .beam{
+    position:absolute;z-index:8;pointer-events:none;width:2px;border-radius:2px;
+    opacity:0;transition:opacity .25s;
+  }
+
+  /* ---- breathing hints: the glow tells them what to do, so no instructions needed ---- */
+  @keyframes cardBreathe{
+    0%,100%{ border-color:#2c2a55; box-shadow:0 0 0 rgba(255,201,77,0); }
+    50%    { border-color:#7a6a3a; box-shadow:0 0 16px rgba(255,201,77,.28); }
+  }
+  /* only face-down cards breathe, and only while the round is unsolved */
+  .lamps.hint .lamp:not(.on) .face.front{
+    animation:cardBreathe 2.2s ease-in-out infinite;
+    animation-delay:calc(var(--i,0) * .18s);
+  }
+  @keyframes inputBreathe{
+    0%,100%{ border-color:#2c2a55; box-shadow:0 0 0 rgba(255,201,77,0); }
+    50%    { border-color:var(--lamp); box-shadow:0 0 22px rgba(255,201,77,.35); }
+  }
+  .ansinline.hint{ animation:inputBreathe 2.2s ease-in-out infinite; }
+
+  /* ---- medal shelf ---- */
+  .medalshelf{
+    display:none;gap:14px;flex-wrap:wrap;align-items:flex-start;
+    margin-top:12px;padding-top:10px;border-top:1px dashed var(--line);
+  }
+  .medalshelf.show{display:flex;}
+  .shelf-label{
+    font-size:.7rem;color:var(--muted);letter-spacing:.1em;
+    align-self:center;margin-right:2px;
+  }
+  .medal{
+    display:flex;flex-direction:column;align-items:center;gap:5px;
+    animation:medalIn .45s cubic-bezier(.34,1.56,.64,1);
+  }
+  @keyframes medalIn{ from{ transform:scale(.4) rotate(-14deg); opacity:0; } }
+  .medal .disc{
+    width:46px;height:46px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--font-mono);font-weight:700;font-size:1.35rem;
+    background:rgba(17,16,41,.9);border:3px solid var(--lamp);color:var(--lamp);
+    box-shadow:0 0 14px rgba(255,201,77,.3);
+    transform:rotate(-6deg);
+  }
+  .medal.record .disc{
+    border-color:var(--good);color:var(--good);box-shadow:0 0 18px rgba(74,222,128,.45);
+  }
+  .medal .when{font-family:var(--font-mono);font-size:.62rem;color:var(--muted);}
+  .medal .tag{font-size:.6rem;color:var(--good);font-family:var(--font-display);font-weight:700;}
+  .shelf-empty{font-size:.72rem;color:var(--muted);align-self:center;}
+
+  /* ---- end-of-round stamp ---- */
+  .result{
+    position:absolute;inset:0;z-index:20;
+    display:flex;align-items:center;justify-content:center;
+    background:rgba(11,10,24,.72);backdrop-filter:blur(3px);
+    opacity:0;pointer-events:none;transition:opacity .25s;
+  }
+  .result.show{opacity:1;pointer-events:auto;}
+  .result-card{
+    text-align:center;padding:24px 40px;border-radius:20px;
+    background:rgba(17,16,41,.96);
+    border:4px solid var(--lamp);
+    box-shadow:0 0 40px rgba(255,201,77,.35);
+    transform:rotate(-6deg) scale(.6);opacity:0;
+    transition:transform .4s cubic-bezier(.34,1.56,.64,1),opacity .3s;
+  }
+  .result.show .result-card{transform:rotate(-6deg) scale(1);opacity:1;}
+  .result-card.record{
+    border-color:var(--good);box-shadow:0 0 46px rgba(74,222,128,.45);
+  }
+  .result-time{font-family:var(--font-display);font-weight:700;font-size:.9rem;color:var(--muted);letter-spacing:.12em;}
+  .result-score{font-family:var(--font-mono);font-weight:700;font-size:4rem;line-height:1.05;color:var(--lamp);}
+  .result-card.record .result-score{color:var(--good);}
+  .result-unit{font-family:var(--font-display);font-weight:700;font-size:1rem;color:var(--text);margin-bottom:6px;}
+  .result-best{font-family:var(--font-mono);font-size:.78rem;color:var(--muted);margin-bottom:16px;}
+
+  /* ---- collapsible explanation ---- */
+  .details{
+    max-height:0;overflow:hidden;
+    transition:max-height .45s ease, margin-top .45s ease;
+    text-align:left;
+  }
+  .details.open{max-height:1400px;margin-top:14px;}
+  .details-inner{
+    background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:14px 16px;
+    font-size:.9rem;line-height:1.75;color:var(--text);
+  }
 
   /* ---- read-mode answer ---- */
-  .answerbar{display:flex;gap:10px;justify-content:center;align-items:center;margin-top:18px;flex-wrap:wrap;}
-  .ansinput{
-    background:var(--panel-2);border:1px solid var(--line);color:var(--text);
-    font-family:var(--font-mono);font-weight:700;font-size:1.4rem;
-    border-radius:9px;padding:8px 12px;width:120px;text-align:center;
+  .answerbar{display:flex;gap:10px;justify-content:center;align-items:center;margin-top:14px;flex-wrap:wrap;}
+  .ansinline{
+    background:var(--panel-2);border:2px solid var(--line);color:var(--lamp);
+    font-family:var(--font-mono);font-weight:700;
+    /* same proportions as the big number card in 认识二进制 */
+    font-size:clamp(2.2rem,6vw,3.1rem);
+    border-radius:16px;padding:10px 20px;width:172px;text-align:center;
   }
-  .ansinput:focus{outline:2px solid var(--lamp);outline-offset:1px;}
+  .ansinline::-webkit-outer-spin-button,
+  .ansinline::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
+  .ansinline{ -moz-appearance:textfield; }
+  .ansinline:focus{outline:2px solid var(--lamp);outline-offset:2px;}
+  .binarybig{ font-size:clamp(2rem,6.5vw,3.2rem)!important; letter-spacing:.1em; color:var(--cool)!important; }
   button.btn{
     font-family:var(--font-display);font-weight:700;font-size:.88rem;border:none;
     border-radius:9px;padding:10px 18px;cursor:pointer;transition:.15s transform,.15s filter;
@@ -245,7 +361,6 @@
 <div class="wrap">
   <header>
     <h1>💡 二进制霓虹灯</h1>
-    <p>请点亮数字，有且只有一种解法。</p>
   </header>
 
   <section class="config">
@@ -255,9 +370,9 @@
       <button id="lampPlus">+</button>
     </div>
     <div class="modebtns">
-      <button class="modebtn selected" id="modeBuild">点灯凑数</button>
-      <button class="modebtn" id="modeRead">看灯读数</button>
-      <button class="modebtn" id="modeChallenge">⚡ 挑战二进制</button>
+      <button class="modebtn selected" id="modeBuild">认识二进制</button>
+      <button class="modebtn" id="modeRead">还原十进制</button>
+      <button class="modebtn" id="modeChallenge">⚡ 60秒挑战</button>
     </div>
   </section>
 
@@ -270,6 +385,7 @@
       <div class="cbarFill"><div class="cbarInner" id="cBarInner"></div></div>
       <button class="btn primary" id="btnStart">开始挑战</button>
     </div>
+    <div class="medalshelf" id="medalShelf"></div>
   </section>
 
   <section class="stage">
@@ -280,18 +396,32 @@
 
     <div class="lamps" id="lamps"></div>
     <div class="bitrow" id="bitrow"></div>
-    <div class="bitlabel" id="bitLabel"></div>
+    <div class="bitlabel" id="bitLabel">
+      <span class="blabel" id="bLabelText">二进制</span>
+      <span class="bstring" id="bString"></span>
+      <input type="number" class="ansinline" id="ansInput" placeholder="?" style="display:none;">
+    </div>
 
     <div class="answerbar">
-      <input type="number" class="ansinput" id="ansInput" placeholder="?" style="display:none;">
       <button class="btn primary" id="btnCheck" style="display:none;">检查答案</button>
+      <button class="btn ghost" id="btnDetail" style="display:none;">查看详解</button>
       <button class="btn ghost" id="btnNext">换一题</button>
     </div>
 
+    <div class="result" id="result">
+      <div class="result-card">
+        <div class="result-time">⏱ 时间到</div>
+        <div class="result-score" id="resScore">0</div>
+        <div class="result-unit">题答对</div>
+        <div class="result-best" id="resBest"></div>
+        <button class="btn primary" id="btnRestart">重新开始</button>
+      </div>
+    </div>
+
     <div class="feedback" id="feedback"></div>
+    <div class="details" id="details"><div class="details-inner" id="detailsInner"></div></div>
   </section>
 
-  <footer>每个数字只有一种点法 · 这就是二进制</footer>
 </div>
 
 <script>
@@ -304,10 +434,45 @@
     target: 0,
     method: 1,
     answered: false,
-    ch: { running:false, timeLeft:60, score:0, streak:0, best:0, timerId:null, advanceId:null }
+    revealed: false,
+    flightIds: [],
+    ch: { running:false, timeLeft:60, score:0, streak:0, best:0, timerId:null, advanceId:null },
+    medals: []
   };
   const CH_SECONDS = 60;
+  const MEDAL_KEY = 'neonBinaryMedals';
+  const MEDAL_MAX = 5;
   const el = id => document.getElementById(id);
+
+  function loadMedals(){
+    try{
+      const raw = localStorage.getItem(MEDAL_KEY);
+      state.medals = raw ? JSON.parse(raw) : [];
+      state.ch.best = state.medals.reduce((m,x)=>Math.max(m, x.score), 0);
+    }catch(e){ state.medals = []; }
+  }
+  function saveMedals(){
+    try{ localStorage.setItem(MEDAL_KEY, JSON.stringify(state.medals)); }catch(e){}
+  }
+  function stampTime(d){
+    const p = n => String(n).padStart(2,'0');
+    return `${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+  }
+  function renderMedals(){
+    const shelf = el('medalShelf');
+    shelf.classList.toggle('show', state.mode==='challenge');
+    if(state.mode!=='challenge') return;
+    if(!state.medals.length){
+      shelf.innerHTML = '<span class="shelf-label">勋章墙</span><span class="shelf-empty">完成一轮挑战就能拿到第一枚勋章</span>';
+      return;
+    }
+    shelf.innerHTML = '<span class="shelf-label">勋章墙</span>' + state.medals.map(m=>`
+      <div class="medal${m.record?' record':''}">
+        <div class="disc">${m.score}</div>
+        <div class="when">${m.when}</div>
+        ${m.record?'<div class="tag">新纪录</div>':''}
+      </div>`).join('');
+  }
 
   function values(){
     const v = [];
@@ -318,6 +483,11 @@
   function sum(){ return values().reduce((a,v,i)=> a + (state.lit[i]?v:0), 0); }
   function bitsOf(n){ return values().map(v => (n & v) ? 1 : 0); }
   function activeType(){ return state.mode==='challenge' ? state.subMode : state.mode; }
+  // in 还原十进制 the powers stay face-down until the answer is checked
+  function cardOpen(i){
+    if(!state.lit[i]) return false;
+    return activeType()==='build' ? true : state.revealed;
+  }
 
   // ---- sound ----
   let audioCtx = null;
@@ -365,7 +535,7 @@
   function celebrate(on){
     // rainbow neon wave across the lit cards and their bit lamps
     [...el('lamps').children].forEach((d,i)=>{
-      d.classList.toggle('solved', on && !!state.lit[i]);
+      d.classList.toggle('solved', on && cardOpen(i));
       d.style.setProperty('--i', i);
     });
     [...el('bitrow').children].forEach((d,i)=>{
@@ -373,6 +543,66 @@
       d.classList.toggle('solved-off', on && !state.lit[i]);
       d.style.setProperty('--i', i);
     });
+  }
+
+  function flyDigitsToString(){
+    values().forEach((v,i)=>{
+      const isOne = !!state.lit[i];
+      // build the flyer only at take-off, so nothing hovers over the round lamp beforehand
+      state.flightIds.push(setTimeout(()=>{
+        const stage = document.querySelector('.stage');
+        const dot = el('bitrow').children[i] && el('bitrow').children[i].querySelector('.dot');
+        const dest = el('bdigit-' + i);
+        if(!stage || !dot || !dest) return;
+        const sRect = stage.getBoundingClientRect();
+        const a = dot.getBoundingClientRect();
+        const b = dest.getBoundingClientRect();
+
+        const beam = document.createElement('div');
+        beam.className = 'beam';
+        beam.style.left = (a.left - sRect.left + a.width/2 - 1) + 'px';
+        beam.style.top  = (a.bottom - sRect.top) + 'px';
+        beam.style.height = Math.max(0, b.top - a.bottom) + 'px';
+        beam.style.background = isOne
+          ? 'linear-gradient(180deg,#5ac8ff,#a855f7)'
+          : 'linear-gradient(180deg,rgba(255,255,255,.9),rgba(255,255,255,0))';
+        stage.appendChild(beam);
+
+        const fly = document.createElement('div');
+        fly.className = 'flyer';
+        fly.textContent = isOne ? '1' : '0';
+        const x0 = a.left - sRect.left + a.width/2 - 8;
+        const y0 = a.top  - sRect.top  + a.height/2 - 12;
+        fly.style.left = x0 + 'px';
+        fly.style.top  = y0 + 'px';
+        fly.style.color = isOne ? '#5ac8ff' : '#ffffff';
+        fly.style.textShadow = isOne ? '0 0 10px rgba(90,200,255,.9)' : '0 0 10px rgba(255,255,255,.9)';
+        stage.appendChild(fly);
+
+        const dx = (b.left - sRect.left + b.width/2 - 8) - x0;
+        const dy = (b.top  - sRect.top  + b.height/2 - 12) - y0;
+
+        requestAnimationFrame(()=>{
+          beam.style.opacity = '.85';
+          fly.style.transform = `translate(${dx}px, ${dy}px) scale(1.35)`;
+        });
+        blip(isOne ? 900 : 520, 0.06, 'sine', 0.07);
+        state.flightIds.push(setTimeout(()=>{ beam.style.opacity = '0'; }, 260));
+        state.flightIds.push(setTimeout(()=>{
+          fly.style.opacity = '0';
+          dest.classList.add('landed', isOne ? 'one' : 'zero');
+          setTimeout(()=>{ dest.style.transform = ''; }, 220);
+        }, 480));
+        state.flightIds.push(setTimeout(()=>{ fly.remove(); beam.remove(); }, 900));
+      }, 1000 + i*160));
+    });
+  }
+
+  function clearFlight(){
+    state.flightIds.forEach(clearTimeout);
+    state.flightIds = [];
+    document.querySelectorAll('.flyer,.beam').forEach(n=>n.remove());
+    document.querySelectorAll('.bdigit').forEach(n=>n.classList.remove('landed','one','zero'));
   }
 
   function showStamp(isRight){
@@ -395,7 +625,7 @@
     values().forEach((v,i)=>{
       const exp = state.lampCount-1-i;
       const d = document.createElement('div');
-      d.className = 'lamp' + (state.lit[i]?' on':'') + (activeType()==='read'?' locked':'');
+      d.className = 'lamp' + (cardOpen(i)?' on':'') + (activeType()==='read'?' locked':'');
       d.innerHTML = `
         <div class="lamp-inner">
           <div class="face front">
@@ -407,6 +637,7 @@
             <span class="pow">2<sup>${exp}</sup></span>
           </div>
         </div>`;
+      d.style.setProperty('--i', i);
       d.addEventListener('click', ()=>{
         if(activeType()!=='build' || state.answered) return;
         state.lit[i] = !state.lit[i];
@@ -427,15 +658,30 @@
       b.innerHTML = `<span class="dot">${state.lit[i]?1:0}</span>`;
       wrap.appendChild(b);
     });
-    el('bitLabel').innerHTML = '二进制 &nbsp;<b>' + values().map((v,i)=>state.lit[i]?1:0).join('') + '</b>';
+    const str = el('bString');
+    str.innerHTML = '';
+    values().forEach((v,i)=>{
+      const d = document.createElement('span');
+      d.className = 'bdigit';
+      d.id = 'bdigit-' + i;
+      d.textContent = state.lit[i] ? 1 : 0;
+      str.appendChild(d);
+    });
+  }
+
+  function updateHints(){
+    const unsolved = !state.answered;
+    el('lamps').classList.toggle('hint', unsolved && activeType()==='build');
+    el('ansInput').classList.toggle('hint', unsolved && activeType()==='read');
   }
 
   function paintLamps(){
     [...el('lamps').children].forEach((d,i)=>{
-      d.classList.toggle('on', !!state.lit[i]);
+      d.classList.toggle('on', cardOpen(i));
       d.classList.toggle('locked', activeType()==='read' || state.answered);
     });
     renderBits();
+    updateHints();
   }
 
   function renderQuestion(){
@@ -443,12 +689,17 @@
     celebrate(false);
     if(isBuild){
       setTarget(state.target, 'target');
+      el('bLabelText').textContent = '二进制';
+      el('bString').style.display = '';
       el('ansInput').style.display = 'none';
       el('btnCheck').style.display = 'none';
     }else{
-      setTarget('?', 'readPrompt');
+      // the binary is the question; the decimal is what they type in below
+      setTarget(bitsOf(state.target).join(''), 'target binarybig');
+      el('bLabelText').textContent = '十进制';
+      el('bString').style.display = 'none';
       el('ansInput').style.display = '';
-      el('btnCheck').style.display = '';
+      el('btnCheck').style.display = 'none';
     }
     el('btnNext').style.display = state.mode==='challenge' ? 'none' : '';
   }
@@ -483,21 +734,37 @@
   }
   function renderFeedback(isRight, banner){
     const f = el('feedback');
-    f.className = 'feedback show ' + (isRight?'good':'bad');
-    f.innerHTML = `
-      <div style="margin-bottom:6px;">${banner}</div>
+    if(banner){
+      f.className = 'feedback show ' + (isRight?'good':'bad');
+      f.innerHTML = banner;
+    }else{
+      f.className = 'feedback';
+      f.innerHTML = '';
+    }
+    // the full working lives behind 查看详解 — only build it, don't show it
+    el('detailsInner').innerHTML = `
       <div class="methodrow">
         <button class="methodbtn" data-m="1">解法一 · 从大灯减起</button>
         <button class="methodbtn" data-m="2">解法二 · 不停除以2</button>
       </div>
       <div class="methodtext" id="methodText"></div>`;
-    f.querySelectorAll('.methodbtn').forEach(b=>{
+    el('detailsInner').querySelectorAll('.methodbtn').forEach(b=>{
       b.addEventListener('click', ()=>{ state.method = parseInt(b.dataset.m,10); updateMethodText(); });
     });
     updateMethodText();
+    if(state.mode !== 'challenge') el('btnDetail').style.display = '';
+  }
+
+  function setDetailsOpen(open){
+    const d = el('details');
+    d.classList.toggle('open', open);
+    el('btnDetail').textContent = open ? '收起详解' : '查看详解';
+    if(open){
+      setTimeout(()=>{ d.scrollIntoView({behavior:'smooth', block:'nearest'}); }, 120);
+    }
   }
   function updateMethodText(){
-    const f = el('feedback');
+    const f = el('detailsInner');
     const t = f.querySelector('#methodText');
     if(!t) return;
     f.querySelectorAll('.methodbtn').forEach(b=>{
@@ -512,6 +779,7 @@
     if(sum() !== state.target) return;
     state.answered = true;
     paintLamps();
+    updateHints();
     el('targetNum').classList.add('solved');
     celebrate(true);
     playSolved();
@@ -523,7 +791,30 @@
       state.ch.advanceId = setTimeout(()=>{ if(state.ch.running) newQuestion(); }, 750);
       return;
     }
-    renderFeedback(true, `✔ 答对了！${state.target} = ${bitsOf(state.target).join('')}`);
+    if(state.mode !== 'challenge') flyDigitsToString();
+    renderFeedback(true, '');
+  }
+
+  // typing the right number is the answer — no button press needed
+  function maybeReadSolved(){
+    if(activeType()!=='read' || state.answered) return;
+    const v = parseInt(el('ansInput').value,10);
+    if(isNaN(v) || v !== state.target) return;
+    state.answered = true;
+    state.revealed = true;
+    paintLamps();
+    el('targetNum').classList.add('solved');
+    celebrate(true);
+    playSolved();
+    showStamp(true);
+    if(state.mode==='challenge' && state.ch.running){
+      state.ch.score++; state.ch.streak++;
+      renderChallengeBar();
+      clearTimeout(state.ch.advanceId);
+      state.ch.advanceId = setTimeout(()=>{ if(state.ch.running) newQuestion(); }, 750);
+      return;
+    }
+    renderFeedback(true, '');
   }
 
   function checkRead(){
@@ -537,7 +828,8 @@
     }
     const isRight = (v===state.target);
     state.answered = true;
-    setTarget(state.target, 'target');
+    state.revealed = true;   // flip the powers open so the sum is visible
+    paintLamps();
     if(isRight){
       el('targetNum').classList.add('solved');
       celebrate(true);
@@ -555,24 +847,29 @@
       state.ch.advanceId = setTimeout(()=>{ if(state.ch.running) newQuestion(); }, isRight?750:1600);
       return;
     }
-    renderFeedback(isRight, isRight ? `✔ 答对了！` : `✘ 再想想。正确答案是 ${state.target}。`);
+    renderFeedback(isRight, isRight ? '' : `✘ 再想想。正确答案是 ${state.target}。`);
   }
 
   // ---- flow ----
   function newQuestion(){
+    hideResult();
     state.answered = false;
+    state.revealed = false;
     state.method = 1;
     if(state.mode==='challenge') state.subMode = Math.random()<0.5 ? 'build' : 'read';
     state.target = Math.floor(Math.random()*maxNum())+1;
     hideStamp();
+    clearFlight();
+    setDetailsOpen(false);
+    el('btnDetail').style.display = 'none';
     el('feedback').className = 'feedback';
     el('feedback').innerHTML = '';
     el('ansInput').value = '';
     state.lit = activeType()==='build'
       ? new Array(state.lampCount).fill(false)
       : bitsOf(state.target).map(b=>!!b);
-    renderLamps(); renderBits(); renderQuestion();
-    if(state.mode==='challenge' && state.ch.running && activeType()==='read') el('ansInput').focus();
+    renderLamps(); renderBits(); renderQuestion(); updateHints();
+    if(state.mode==='challenge' && state.ch.running && activeType()==='read') el('ansInput').focus({preventScroll:true});
   }
 
   // ---- challenge ----
@@ -594,6 +891,7 @@
   }
   function startChallenge(){
     stopChallenge();
+    hideResult();
     state.ch.running = true;
     state.ch.timeLeft = CH_SECONDS;
     state.ch.score = 0;
@@ -601,6 +899,9 @@
     el('btnStart').textContent = '重新开始';
     renderChallengeBar();
     newQuestion();
+    // park the scoreboard at the very top so the whole round fits on one screen
+    const barTop = el('challengeBar').getBoundingClientRect().top + window.scrollY;
+    window.scrollTo({ top: Math.max(0, barTop - 10), behavior:'smooth' });
     state.ch.timerId = setInterval(()=>{
       state.ch.timeLeft--;
       renderChallengeBar();
@@ -609,19 +910,32 @@
   }
   function endChallenge(){
     stopChallenge();
-    const s = state.ch.score;
-    if(s > state.ch.best) state.ch.best = s;
+    const sc = state.ch.score;
+    const isRecord = sc > state.ch.best && sc > 0;
+    if(sc > state.ch.best) state.ch.best = sc;
     renderChallengeBar();
     state.answered = true;
     paintLamps();
     hideStamp();
-    const f = el('feedback');
-    f.className = 'feedback show ' + (s>0?'good':'bad');
-    f.innerHTML = `⏱ 时间到！本轮答对 <b>${s}</b> 题`
-      + (s===state.ch.best && s>0 ? '（新纪录 🎉）' : `，最佳纪录 ${state.ch.best}`)
-      + '<br>点「重新开始」再来一轮。';
+    clearFlight();
+    el('feedback').className = 'feedback';
+    el('feedback').innerHTML = '';
+    el('resScore').textContent = sc;
+    el('resBest').textContent = isRecord ? '🎉 新纪录！' : `最佳纪录 ${state.ch.best}`;
+    document.querySelector('.result-card').classList.toggle('record', isRecord);
+    // a full shelf of records stops accepting ordinary medals — only a new record gets in
+    const recordCount = state.medals.filter(m=>m.record).length;
+    if(isRecord || recordCount < MEDAL_MAX){
+      state.medals.unshift({ score:sc, record:isRecord, when:stampTime(new Date()) });
+      state.medals = state.medals.slice(0, MEDAL_MAX);
+      saveMedals();
+      renderMedals();
+    }
+    el('result').classList.add('show');
+    playSolved();
     el('btnStart').textContent = '开始挑战';
   }
+  function hideResult(){ el('result').classList.remove('show'); }
 
   // ---- config ----
   el('lampMinus').addEventListener('click', ()=>{
@@ -636,6 +950,7 @@
     stopChallenge(); state.mode='challenge'; syncConfig();
     state.answered = true;
     hideStamp();
+    el('btnDetail').style.display = 'none';
     el('feedback').className = 'feedback show good';
     el('feedback').innerHTML = `${CH_SECONDS} 秒内答对越多越好，两种题型随机出现。准备好就点「开始挑战」。`;
     renderChallengeBar();
@@ -646,13 +961,22 @@
     el('modeRead').classList.toggle('selected', state.mode==='read');
     el('modeChallenge').classList.toggle('selected', state.mode==='challenge');
     el('challengeBar').style.display = state.mode==='challenge' ? '' : 'none';
+    renderMedals();
   }
 
   el('btnStart').addEventListener('click', startChallenge);
+  el('btnRestart').addEventListener('click', startChallenge);
   el('btnCheck').addEventListener('click', checkRead);
-  el('btnNext').addEventListener('click', newQuestion);
-  el('ansInput').addEventListener('keydown', e=>{ if(e.key==='Enter') checkRead(); });
+  el('btnDetail').addEventListener('click', ()=>{
+    setDetailsOpen(!el('details').classList.contains('open'));
+  });
+  el('btnNext').addEventListener('click', ()=>{
+    newQuestion();
+    document.querySelector('.stage').scrollIntoView({behavior:'smooth', block:'start'});
+  });
+  el('ansInput').addEventListener('input', maybeReadSolved);
 
+  loadMedals();
   syncConfig();
   newQuestion();
 })();
