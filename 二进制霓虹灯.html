@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>二进制霓虹灯</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b0a18;
+    --panel:#161435;
+    --panel-2:#111029;
+    --line:#2c2a55;
+    --text:#f0eeff;
+    --muted:#9a97c4;
+    --lamp:#ffc94d;
+    --cool:#5ac8ff;
+    --good:#4ade80;
+    --bad:#fb7185;
+    --radius:16px;
+    --font-display:'Baloo 2','PingFang SC','Microsoft YaHei',sans-serif;
+    --font-mono:'JetBrains Mono',ui-monospace,monospace;
+    --font-body:'PingFang SC','Microsoft YaHei','Segoe UI',sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(900px 460px at 12% -10%, #241f4d 0%, transparent 60%),
+      radial-gradient(800px 420px at 108% 15%, #1d2a4d 0%, transparent 55%),
+      var(--bg);
+    color:var(--text);
+    font-family:var(--font-body);
+    padding:24px 16px 50px;
+  }
+  .wrap{max-width:760px;margin:0 auto;}
+  header{margin-bottom:4px;}
+  header h1{
+    font-family:var(--font-display); font-size:clamp(1.4rem,3.4vw,1.9rem);
+    margin:0 0 4px; font-weight:800; color:var(--lamp);
+  }
+  header p{color:var(--muted);margin:0;font-size:.88rem;}
+  section{
+    background:linear-gradient(180deg,var(--panel),var(--panel-2));
+    border:1px solid var(--line); border-radius:var(--radius);
+    padding:16px 18px; margin-top:14px;
+  }
+
+  /* ---- config ---- */
+  .config{display:flex;flex-wrap:wrap;gap:14px;align-items:center;}
+  .stepper{display:flex;align-items:center;gap:8px;background:var(--panel-2);border:1px solid var(--line);border-radius:9px;padding:4px 6px;height:40px;}
+  .stepper button{
+    width:32px;height:32px;border:none;border-radius:6px;background:#33306b;color:var(--text);
+    font-family:var(--font-display);font-weight:700;font-size:1rem;cursor:pointer;flex:none;
+  }
+  .stepper button:hover{filter:brightness(1.25);}
+  .stepper .val{font-family:var(--font-mono);font-weight:700;font-size:1rem;min-width:34px;text-align:center;}
+  .modebtns{display:flex;gap:6px;flex-wrap:wrap;}
+  .modebtn{
+    height:40px;padding:0 14px;border-radius:9px;border:1px solid var(--line);background:var(--panel-2);
+    color:var(--text);font-family:var(--font-display);font-weight:700;font-size:.82rem;cursor:pointer;
+  }
+  .modebtn.selected{background:var(--lamp);color:#2a1f02;border-color:var(--lamp);}
+
+  /* ---- challenge bar ---- */
+  .cbar{display:flex;align-items:center;gap:18px;flex-wrap:wrap;}
+  .cstat{display:flex;flex-direction:column;gap:2px;}
+  .clabel{font-size:.66rem;color:var(--muted);}
+  .cval{font-family:var(--font-mono);font-weight:700;font-size:1.35rem;color:var(--lamp);}
+  .cval.urgent{color:var(--bad);}
+  .cbarFill{flex:1 1 120px;min-width:100px;height:8px;border-radius:4px;background:var(--panel-2);border:1px solid var(--line);overflow:hidden;}
+  .cbarInner{height:100%;width:100%;background:var(--lamp);transition:width .3s linear;}
+  .cbarInner.urgent{background:var(--bad);}
+
+  /* ---- stage ---- */
+  .stage{text-align:center;}
+  .target-wrap{position:relative;display:inline-block;margin:4px 0 22px;}
+  .target{
+    font-family:var(--font-mono);font-weight:700;
+    font-size:clamp(3rem,9vw,4.6rem);line-height:1;color:var(--lamp);
+    padding:8px 26px;border-radius:16px;
+    background:var(--panel-2);border:2px solid var(--line);
+    transition:color .2s, border-color .2s, box-shadow .2s;
+  }
+  /* ---- 流光溢彩 celebration ---- */
+  @keyframes hueShift{ to{ filter:hue-rotate(360deg); } }
+  @keyframes neonSweep{ to{ background-position:-300% 0; } }
+  @keyframes neonPulse{
+    0%,100%{ box-shadow:0 0 14px rgba(255,120,220,.55), 0 0 34px rgba(90,200,255,.35); }
+    50%    { box-shadow:0 0 30px rgba(255,200,80,.85), 0 0 64px rgba(120,255,180,.55); }
+  }
+  .target.solved{
+    border-color:transparent;
+    background:
+      linear-gradient(var(--panel-2), var(--panel-2)) padding-box,
+      linear-gradient(90deg,#ff4d9d,#ffc94d,#4ade80,#5ac8ff,#a855f7,#ff4d9d) border-box;
+    background-size:auto, 300% 100%;
+    animation:neonSweep 2.4s linear infinite, neonPulse 1.5s ease-in-out infinite;
+  }
+  .target.solved .digits{
+    background:linear-gradient(90deg,#ff4d9d,#ffc94d,#4ade80,#5ac8ff,#a855f7,#ff4d9d);
+    background-size:300% 100%;
+    -webkit-background-clip:text; background-clip:text;
+    -webkit-text-fill-color:transparent; color:transparent;
+    animation:neonSweep 2.4s linear infinite;
+  }
+  .lamp.solved .face.back{
+    border-color:transparent;
+    background:
+      radial-gradient(circle at 50% 34%, #2a1b3d 0%, #14112b 72%) padding-box,
+      linear-gradient(90deg,#ff4d9d,#ffc94d,#4ade80,#5ac8ff,#a855f7,#ff4d9d) border-box;
+    background-size:auto, 300% 100%;
+    animation:neonSweep 2.4s linear infinite, neonPulse 1.5s ease-in-out infinite;
+  }
+  .lamp.solved .face.back .dec{
+    background:linear-gradient(90deg,#ff4d9d,#ffc94d,#4ade80,#5ac8ff,#a855f7,#ff4d9d);
+    background-size:300% 100%;
+    -webkit-background-clip:text; background-clip:text;
+    -webkit-text-fill-color:transparent; color:transparent;
+    animation:neonSweep 2.4s linear infinite;
+  }
+  .bit.on.solved .dot{
+    background:linear-gradient(90deg,#ff4d9d,#ffc94d,#4ade80,#5ac8ff,#a855f7,#ff4d9d);
+    background-size:300% 100%;
+    border-color:#fff;color:#1b0b24;
+    animation:neonSweep 2.4s linear infinite, neonPulse 1.5s ease-in-out infinite;
+  }
+  /* the 0s light up too — plain white, so the whole row glows but 1s stay colourful */
+  @keyframes whitePulse{
+    0%,100%{ box-shadow:0 0 10px rgba(255,255,255,.30); }
+    50%    { box-shadow:0 0 26px rgba(255,255,255,.70); }
+  }
+  .bit.solved-off .dot{
+    border-color:#ffffff;color:#ffffff;background:#26264a;
+    animation:whitePulse 1.5s ease-in-out infinite;
+    animation-delay:calc(var(--i,0) * .11s);
+  }
+
+  /* each lit card/dot joins the wave slightly later, so the light travels left to right */
+  .lamp.solved .face.back, .lamp.solved .face.back .dec,
+  .bit.on.solved .dot{ animation-delay:calc(var(--i,0) * .11s), calc(var(--i,0) * .11s); }
+  .readPrompt{
+    font-family:var(--font-mono);font-weight:700;
+    font-size:clamp(3rem,9vw,4.6rem);line-height:1;color:#3f3c72;
+    padding:8px 34px;border-radius:16px;background:var(--panel-2);border:2px dashed var(--line);
+  }
+  .stamp{
+    position:absolute;top:-16px;right:-62px;width:82px;height:82px;border-radius:50%;
+    border:4px solid var(--good);display:flex;flex-direction:column;align-items:center;justify-content:center;
+    font-family:var(--font-display);font-weight:800;color:var(--good);background:rgba(11,10,24,.86);
+    transform:rotate(-16deg) scale(0);opacity:0;pointer-events:none;
+    transition:transform .35s cubic-bezier(.34,1.56,.64,1),opacity .2s;
+    text-align:center;line-height:1.1;z-index:3;
+  }
+  .stamp.show{transform:rotate(-16deg) scale(1);opacity:1;}
+  .stamp.bad{border-color:var(--bad);color:var(--bad);background:rgba(30,10,20,.86);}
+  .stamp .icon{font-size:1.7rem;line-height:1;}
+  .stamp .word{font-size:.62rem;letter-spacing:.04em;margin-top:2px;}
+
+  /* ---- flip cards ---- */
+  .lamps{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
+  .lamp{
+    width:84px;height:104px;perspective:700px;cursor:pointer;user-select:none;flex:none;
+  }
+  .lamp.locked{cursor:default;}
+  .lamp-inner{
+    position:relative;width:100%;height:100%;
+    transform-style:preserve-3d;transition:transform .5s cubic-bezier(.4,.9,.3,1.1);
+  }
+  .lamp.on .lamp-inner{transform:rotateY(180deg);}
+  .face{
+    position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;
+    border-radius:12px;border:2px solid #2c2a55;background:#0e0d22;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  }
+  .face .pow{font-family:var(--font-mono);font-weight:700;font-size:1.5rem;color:#6f6ca3;}
+  .face .pow sup{font-size:.6em;}
+  .face .hintdot{font-size:1.1rem;filter:grayscale(1) brightness(.5);}
+  .face.back{
+    transform:rotateY(180deg);
+    border-color:var(--lamp);
+    background:radial-gradient(circle at 50% 34%, #4a3a10 0%, #1b1633 72%);
+    box-shadow:0 0 18px rgba(255,201,77,.32);
+  }
+  .face.back .dec{font-family:var(--font-mono);font-weight:700;font-size:1.75rem;color:var(--lamp);}
+  .face.back .pow{font-size:.86rem;color:#d8b45c;}
+
+  /* ---- bit lamps ---- */
+  .bitrow{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:14px;}
+  .bit{
+    width:84px;flex:none;display:flex;flex-direction:column;align-items:center;gap:3px;
+  }
+  .bit .dot{
+    width:26px;height:26px;border-radius:50%;
+    background:#15142e;border:2px solid #2c2a55;
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--font-mono);font-weight:700;font-size:.82rem;color:#4a4779;
+    transition:background .25s, border-color .25s, color .25s, box-shadow .25s;
+  }
+  .bit.on .dot{
+    background:var(--cool);border-color:var(--cool);color:#06202e;
+    box-shadow:0 0 14px rgba(90,200,255,.6);
+  }
+  .bitlabel{
+    margin-top:10px;font-family:var(--font-mono);font-size:.74rem;color:var(--muted);letter-spacing:.1em;
+  }
+  .bitlabel b{color:var(--cool);}
+
+  /* ---- read-mode answer ---- */
+  .answerbar{display:flex;gap:10px;justify-content:center;align-items:center;margin-top:18px;flex-wrap:wrap;}
+  .ansinput{
+    background:var(--panel-2);border:1px solid var(--line);color:var(--text);
+    font-family:var(--font-mono);font-weight:700;font-size:1.4rem;
+    border-radius:9px;padding:8px 12px;width:120px;text-align:center;
+  }
+  .ansinput:focus{outline:2px solid var(--lamp);outline-offset:1px;}
+  button.btn{
+    font-family:var(--font-display);font-weight:700;font-size:.88rem;border:none;
+    border-radius:9px;padding:10px 18px;cursor:pointer;transition:.15s transform,.15s filter;
+  }
+  button.btn:hover{transform:translateY(-1px);filter:brightness(1.1);}
+  button.btn.primary{background:var(--lamp);color:#2a1f02;}
+  button.btn.ghost{background:transparent;color:var(--text);border:1px solid var(--line);}
+
+  /* ---- feedback ---- */
+  .feedback{
+    font-size:.9rem;line-height:1.7;padding:12px 14px;border-radius:9px;display:none;margin-top:14px;text-align:left;
+  }
+  .feedback.show{display:block;}
+  .feedback.good{background:rgba(74,222,128,.12);color:var(--good);border:1px solid rgba(74,222,128,.35);}
+  .feedback.bad{background:rgba(251,113,133,.12);color:var(--bad);border:1px solid rgba(251,113,133,.35);}
+  .methodrow{display:flex;gap:6px;margin:8px 0;flex-wrap:wrap;}
+  .methodbtn{
+    font-family:var(--font-display);font-weight:700;font-size:.74rem;cursor:pointer;
+    padding:5px 11px;border-radius:999px;border:1px solid currentColor;background:transparent;
+    color:inherit;opacity:.55;
+  }
+  .methodbtn.active{opacity:1;}
+  .methodtext{white-space:pre-line;}
+  footer{text-align:center;color:var(--muted);font-size:.68rem;margin-top:16px;font-family:var(--font-mono);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>💡 二进制霓虹灯</h1>
+    <p>请点亮数字，有且只有一种解法。</p>
+  </header>
+
+  <section class="config">
+    <div class="stepper">
+      <button id="lampMinus">−</button>
+      <span class="val" id="lampVal">6 盏</span>
+      <button id="lampPlus">+</button>
+    </div>
+    <div class="modebtns">
+      <button class="modebtn selected" id="modeBuild">点灯凑数</button>
+      <button class="modebtn" id="modeRead">看灯读数</button>
+      <button class="modebtn" id="modeChallenge">⚡ 挑战二进制</button>
+    </div>
+  </section>
+
+  <section id="challengeBar" style="display:none;">
+    <div class="cbar">
+      <div class="cstat"><span class="clabel">剩余时间</span><span class="cval" id="cTime">60</span></div>
+      <div class="cstat"><span class="clabel">得分</span><span class="cval" id="cScore">0</span></div>
+      <div class="cstat"><span class="clabel">连击</span><span class="cval" id="cStreak">0</span></div>
+      <div class="cstat"><span class="clabel">最佳</span><span class="cval" id="cBest">0</span></div>
+      <div class="cbarFill"><div class="cbarInner" id="cBarInner"></div></div>
+      <button class="btn primary" id="btnStart">开始挑战</button>
+    </div>
+  </section>
+
+  <section class="stage">
+    <div class="target-wrap">
+      <div class="target" id="targetNum"><span class="digits">14</span></div>
+      <div class="stamp" id="stamp"></div>
+    </div>
+
+    <div class="lamps" id="lamps"></div>
+    <div class="bitrow" id="bitrow"></div>
+    <div class="bitlabel" id="bitLabel"></div>
+
+    <div class="answerbar">
+      <input type="number" class="ansinput" id="ansInput" placeholder="?" style="display:none;">
+      <button class="btn primary" id="btnCheck" style="display:none;">检查答案</button>
+      <button class="btn ghost" id="btnNext">换一题</button>
+    </div>
+
+    <div class="feedback" id="feedback"></div>
+  </section>
+
+  <footer>每个数字只有一种点法 · 这就是二进制</footer>
+</div>
+
+<script>
+(function(){
+  const state = {
+    lampCount: 6,
+    mode: 'build',        // 'build' | 'read' | 'challenge'
+    subMode: 'build',     // which question type this challenge round is
+    lit: [],
+    target: 0,
+    method: 1,
+    answered: false,
+    ch: { running:false, timeLeft:60, score:0, streak:0, best:0, timerId:null, advanceId:null }
+  };
+  const CH_SECONDS = 60;
+  const el = id => document.getElementById(id);
+
+  function values(){
+    const v = [];
+    for(let i=state.lampCount-1; i>=0; i--) v.push(Math.pow(2,i));
+    return v;
+  }
+  function maxNum(){ return Math.pow(2,state.lampCount)-1; }
+  function sum(){ return values().reduce((a,v,i)=> a + (state.lit[i]?v:0), 0); }
+  function bitsOf(n){ return values().map(v => (n & v) ? 1 : 0); }
+  function activeType(){ return state.mode==='challenge' ? state.subMode : state.mode; }
+
+  // ---- sound ----
+  let audioCtx = null;
+  function getCtx(){
+    if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    if(audioCtx.state==='suspended') audioCtx.resume();
+    return audioCtx;
+  }
+  function blip(freq, dur, type, vol){
+    try{
+      const ctx = getCtx(), t0 = ctx.currentTime;
+      const osc = ctx.createOscillator(), gain = ctx.createGain();
+      osc.type = type||'sine';
+      osc.frequency.setValueAtTime(freq, t0);
+      gain.gain.setValueAtTime(0.0001, t0);
+      gain.gain.exponentialRampToValueAtTime(vol||0.16, t0+0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0+dur);
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.start(t0); osc.stop(t0+dur+0.02);
+    }catch(e){}
+  }
+  function playFlip(on){ blip(on?680:340, 0.08, 'triangle', 0.12); }
+  function playSolved(){
+    try{
+      const ctx = getCtx(), t0 = ctx.currentTime;
+      [659.3, 880, 1318.5].forEach((f,i)=>{
+        const osc = ctx.createOscillator(), gain = ctx.createGain();
+        const t = t0 + i*0.10;
+        osc.type='sine'; osc.frequency.setValueAtTime(f,t);
+        gain.gain.setValueAtTime(0.0001,t);
+        gain.gain.exponentialRampToValueAtTime(0.24,t+0.012);
+        gain.gain.exponentialRampToValueAtTime(0.0001,t+0.42);
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.start(t); osc.stop(t+0.45);
+      });
+    }catch(e){}
+  }
+  function playWrong(){ blip(150, 0.24, 'sawtooth'); }
+
+  function setTarget(txt, cls){
+    const t = el('targetNum');
+    t.className = cls;
+    t.innerHTML = `<span class="digits">${txt}</span>`;
+  }
+  function celebrate(on){
+    // rainbow neon wave across the lit cards and their bit lamps
+    [...el('lamps').children].forEach((d,i)=>{
+      d.classList.toggle('solved', on && !!state.lit[i]);
+      d.style.setProperty('--i', i);
+    });
+    [...el('bitrow').children].forEach((d,i)=>{
+      d.classList.toggle('solved', on && !!state.lit[i]);
+      d.classList.toggle('solved-off', on && !state.lit[i]);
+      d.style.setProperty('--i', i);
+    });
+  }
+
+  function showStamp(isRight){
+    const s = el('stamp');
+    s.className = 'stamp show' + (isRight?'':' bad');
+    s.innerHTML = isRight
+      ? '<span class="icon">✓</span><span class="word">答对了</span>'
+      : '<span class="icon">✗</span><span class="word">再想想</span>';
+  }
+  function hideStamp(){
+    const s = el('stamp');
+    s.className = 'stamp';
+    s.innerHTML = '';
+  }
+
+  // ---- render ----
+  function renderLamps(){
+    const wrap = el('lamps');
+    wrap.innerHTML = '';
+    values().forEach((v,i)=>{
+      const exp = state.lampCount-1-i;
+      const d = document.createElement('div');
+      d.className = 'lamp' + (state.lit[i]?' on':'') + (activeType()==='read'?' locked':'');
+      d.innerHTML = `
+        <div class="lamp-inner">
+          <div class="face front">
+            <span class="hintdot">💡</span>
+            <span class="pow">2<sup>${exp}</sup></span>
+          </div>
+          <div class="face back">
+            <span class="dec">${v}</span>
+            <span class="pow">2<sup>${exp}</sup></span>
+          </div>
+        </div>`;
+      d.addEventListener('click', ()=>{
+        if(activeType()!=='build' || state.answered) return;
+        state.lit[i] = !state.lit[i];
+        playFlip(state.lit[i]);
+        paintLamps();
+        maybeSolved();
+      });
+      wrap.appendChild(d);
+    });
+  }
+
+  function renderBits(){
+    const wrap = el('bitrow');
+    wrap.innerHTML = '';
+    values().forEach((v,i)=>{
+      const b = document.createElement('div');
+      b.className = 'bit' + (state.lit[i]?' on':'');
+      b.innerHTML = `<span class="dot">${state.lit[i]?1:0}</span>`;
+      wrap.appendChild(b);
+    });
+    el('bitLabel').innerHTML = '二进制 &nbsp;<b>' + values().map((v,i)=>state.lit[i]?1:0).join('') + '</b>';
+  }
+
+  function paintLamps(){
+    [...el('lamps').children].forEach((d,i)=>{
+      d.classList.toggle('on', !!state.lit[i]);
+      d.classList.toggle('locked', activeType()==='read' || state.answered);
+    });
+    renderBits();
+  }
+
+  function renderQuestion(){
+    const isBuild = activeType()==='build';
+    celebrate(false);
+    if(isBuild){
+      setTarget(state.target, 'target');
+      el('ansInput').style.display = 'none';
+      el('btnCheck').style.display = 'none';
+    }else{
+      setTarget('?', 'readPrompt');
+      el('ansInput').style.display = '';
+      el('btnCheck').style.display = '';
+    }
+    el('btnNext').style.display = state.mode==='challenge' ? 'none' : '';
+  }
+
+  // ---- explanations ----
+  function reasoning1(n){
+    const lines = [];
+    let rest = n;
+    values().forEach((v,i)=>{
+      const exp = state.lampCount-1-i;
+      if(v<=rest){ lines.push(`${rest} ≥ ${v}，点亮 2^${exp} = ${v} → 还剩 ${rest-v}`); rest -= v; }
+      else{ lines.push(`${rest} < ${v}，2^${exp} 不点`); }
+    });
+    return '从最大的灯开始，能减就减：\n' + lines.join('\n');
+  }
+  function reasoning2(n){
+    const lines = [];
+    let q = n; const bits = [];
+    while(q>0){
+      const r = q%2; bits.unshift(r);
+      lines.push(`${q} ÷ 2 = ${Math.floor(q/2)} 余 ${r}`);
+      q = Math.floor(q/2);
+    }
+    return '不停地除以 2，把余数从下往上读：\n' + lines.join('\n')
+      + `\n余数倒着读 = ${bits.join('')}，补足 ${state.lampCount} 位 = ${bitsOf(n).join('')}`
+      + `\n每一位的 1 就对应一盏点亮的灯。`;
+  }
+  function uniquenessNote(){
+    const v = values();
+    const small = v.slice(1).reduce((a,b)=>a+b,0);
+    return `\n\n为什么只有一种解法？因为每盏灯都比它后面所有灯加起来还多 1（${v[0]} > ${small}）。所以最大的那盏该不该点，从来没得选。`;
+  }
+  function renderFeedback(isRight, banner){
+    const f = el('feedback');
+    f.className = 'feedback show ' + (isRight?'good':'bad');
+    f.innerHTML = `
+      <div style="margin-bottom:6px;">${banner}</div>
+      <div class="methodrow">
+        <button class="methodbtn" data-m="1">解法一 · 从大灯减起</button>
+        <button class="methodbtn" data-m="2">解法二 · 不停除以2</button>
+      </div>
+      <div class="methodtext" id="methodText"></div>`;
+    f.querySelectorAll('.methodbtn').forEach(b=>{
+      b.addEventListener('click', ()=>{ state.method = parseInt(b.dataset.m,10); updateMethodText(); });
+    });
+    updateMethodText();
+  }
+  function updateMethodText(){
+    const f = el('feedback');
+    const t = f.querySelector('#methodText');
+    if(!t) return;
+    f.querySelectorAll('.methodbtn').forEach(b=>{
+      b.classList.toggle('active', parseInt(b.dataset.m,10)===state.method);
+    });
+    t.textContent = (state.method===1 ? reasoning1(state.target) : reasoning2(state.target)) + uniquenessNote();
+  }
+
+  // ---- solving ----
+  function maybeSolved(){
+    if(activeType()!=='build' || state.answered) return;
+    if(sum() !== state.target) return;
+    state.answered = true;
+    paintLamps();
+    el('targetNum').classList.add('solved');
+    celebrate(true);
+    playSolved();
+    showStamp(true);
+    if(state.mode==='challenge' && state.ch.running){
+      state.ch.score++; state.ch.streak++;
+      renderChallengeBar();
+      clearTimeout(state.ch.advanceId);
+      state.ch.advanceId = setTimeout(()=>{ if(state.ch.running) newQuestion(); }, 750);
+      return;
+    }
+    renderFeedback(true, `✔ 答对了！${state.target} = ${bitsOf(state.target).join('')}`);
+  }
+
+  function checkRead(){
+    if(state.answered) return;
+    const v = parseInt(el('ansInput').value,10);
+    if(isNaN(v)){
+      const f = el('feedback');
+      f.className = 'feedback show bad';
+      f.innerHTML = '先填一个数字，再检查答案。';
+      return;
+    }
+    const isRight = (v===state.target);
+    state.answered = true;
+    setTarget(state.target, 'target');
+    if(isRight){
+      el('targetNum').classList.add('solved');
+      celebrate(true);
+      playSolved();
+    } else { playWrong(); }
+    showStamp(isRight);
+    if(state.mode==='challenge' && state.ch.running){
+      const f = el('feedback');
+      f.className = 'feedback show ' + (isRight?'good':'bad');
+      f.innerHTML = isRight ? `✔ ${state.target} 正确！连击 ${state.ch.streak+1}`
+                            : `✘ 正确答案是 ${state.target}（${bitsOf(state.target).join('')}）`;
+      if(isRight){ state.ch.score++; state.ch.streak++; } else { state.ch.streak = 0; }
+      renderChallengeBar();
+      clearTimeout(state.ch.advanceId);
+      state.ch.advanceId = setTimeout(()=>{ if(state.ch.running) newQuestion(); }, isRight?750:1600);
+      return;
+    }
+    renderFeedback(isRight, isRight ? `✔ 答对了！` : `✘ 再想想。正确答案是 ${state.target}。`);
+  }
+
+  // ---- flow ----
+  function newQuestion(){
+    state.answered = false;
+    state.method = 1;
+    if(state.mode==='challenge') state.subMode = Math.random()<0.5 ? 'build' : 'read';
+    state.target = Math.floor(Math.random()*maxNum())+1;
+    hideStamp();
+    el('feedback').className = 'feedback';
+    el('feedback').innerHTML = '';
+    el('ansInput').value = '';
+    state.lit = activeType()==='build'
+      ? new Array(state.lampCount).fill(false)
+      : bitsOf(state.target).map(b=>!!b);
+    renderLamps(); renderBits(); renderQuestion();
+    if(state.mode==='challenge' && state.ch.running && activeType()==='read') el('ansInput').focus();
+  }
+
+  // ---- challenge ----
+  function renderChallengeBar(){
+    el('cTime').textContent = state.ch.timeLeft;
+    el('cScore').textContent = state.ch.score;
+    el('cStreak').textContent = state.ch.streak;
+    el('cBest').textContent = state.ch.best;
+    const inner = el('cBarInner');
+    inner.style.width = Math.max(0, state.ch.timeLeft/CH_SECONDS*100) + '%';
+    const urgent = state.ch.timeLeft<=10;
+    inner.classList.toggle('urgent', urgent);
+    el('cTime').classList.toggle('urgent', urgent);
+  }
+  function stopChallenge(){
+    clearInterval(state.ch.timerId);
+    clearTimeout(state.ch.advanceId);
+    state.ch.running = false;
+  }
+  function startChallenge(){
+    stopChallenge();
+    state.ch.running = true;
+    state.ch.timeLeft = CH_SECONDS;
+    state.ch.score = 0;
+    state.ch.streak = 0;
+    el('btnStart').textContent = '重新开始';
+    renderChallengeBar();
+    newQuestion();
+    state.ch.timerId = setInterval(()=>{
+      state.ch.timeLeft--;
+      renderChallengeBar();
+      if(state.ch.timeLeft<=0) endChallenge();
+    }, 1000);
+  }
+  function endChallenge(){
+    stopChallenge();
+    const s = state.ch.score;
+    if(s > state.ch.best) state.ch.best = s;
+    renderChallengeBar();
+    state.answered = true;
+    paintLamps();
+    hideStamp();
+    const f = el('feedback');
+    f.className = 'feedback show ' + (s>0?'good':'bad');
+    f.innerHTML = `⏱ 时间到！本轮答对 <b>${s}</b> 题`
+      + (s===state.ch.best && s>0 ? '（新纪录 🎉）' : `，最佳纪录 ${state.ch.best}`)
+      + '<br>点「重新开始」再来一轮。';
+    el('btnStart').textContent = '开始挑战';
+  }
+
+  // ---- config ----
+  el('lampMinus').addEventListener('click', ()=>{
+    if(state.lampCount>3){ stopChallenge(); state.lampCount--; syncConfig(); newQuestion(); }
+  });
+  el('lampPlus').addEventListener('click', ()=>{
+    if(state.lampCount<8){ stopChallenge(); state.lampCount++; syncConfig(); newQuestion(); }
+  });
+  el('modeBuild').addEventListener('click', ()=>{ stopChallenge(); state.mode='build'; syncConfig(); newQuestion(); });
+  el('modeRead').addEventListener('click', ()=>{ stopChallenge(); state.mode='read'; syncConfig(); newQuestion(); });
+  el('modeChallenge').addEventListener('click', ()=>{
+    stopChallenge(); state.mode='challenge'; syncConfig();
+    state.answered = true;
+    hideStamp();
+    el('feedback').className = 'feedback show good';
+    el('feedback').innerHTML = `${CH_SECONDS} 秒内答对越多越好，两种题型随机出现。准备好就点「开始挑战」。`;
+    renderChallengeBar();
+  });
+  function syncConfig(){
+    el('lampVal').textContent = state.lampCount + ' 盏';
+    el('modeBuild').classList.toggle('selected', state.mode==='build');
+    el('modeRead').classList.toggle('selected', state.mode==='read');
+    el('modeChallenge').classList.toggle('selected', state.mode==='challenge');
+    el('challengeBar').style.display = state.mode==='challenge' ? '' : 'none';
+  }
+
+  el('btnStart').addEventListener('click', startChallenge);
+  el('btnCheck').addEventListener('click', checkRead);
+  el('btnNext').addEventListener('click', newQuestion);
+  el('ansInput').addEventListener('keydown', e=>{ if(e.key==='Enter') checkRead(); });
+
+  syncConfig();
+  newQuestion();
+})();
+</script>
+</body>
+</html>
