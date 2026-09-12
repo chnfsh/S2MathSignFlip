@@ -66,16 +66,16 @@
   .jumpBtn{
     position:absolute; top:12px; left:50%; z-index:5;
     display:flex; align-items:center; justify-content:center;
-    width:38px; height:38px; border-radius:50%; border:1px solid var(--snake-dim);
-    background:#0f2418; color:var(--snake); cursor:pointer;
-    font-size:1.1rem; line-height:1;
-    box-shadow:0 4px 12px rgba(0,0,0,.4);
+    width:38px; height:38px; border-radius:50%; border:none;
+    background:var(--snake); color:#04150c; cursor:pointer;
+    font-size:1.15rem; font-weight:700; line-height:1;
+    box-shadow:0 4px 14px rgba(57,255,136,.35);
     opacity:0; pointer-events:none; transform:translate(-50%,-6px);
     transition:opacity .18s, transform .18s, background .15s;
   }
   .jumpBtn.show{opacity:1; pointer-events:auto; transform:translate(-50%,0);}
   .jumpBtn:hover{filter:brightness(1.25);}
-  .jumpBtn.folded{color:var(--amber); border-color:var(--amber-dim);}
+  .jumpBtn.folded{background:var(--amber); color:#241a03; box-shadow:0 4px 14px rgba(255,205,60,.35);}
   .fold-divider{
     text-align:center; color:var(--muted); font-family:var(--font-mono); font-size:.72rem;
     padding:9px 0; margin:4px 0; border-top:1px dashed var(--line); border-bottom:1px dashed var(--line);
@@ -486,9 +486,16 @@
     btn.classList.toggle('folded', state.folded);
     btn.textContent = state.folded ? '↓' : '↑';
     btn.title = state.folded ? '展开完整过程' : '折叠中间过程';
+    // once an answer is on screen, 检查答案 has no job left — reuse it as the fold toggle
+    const chk = document.getElementById('btnCheck');
+    if(state.lastCorrect){
+      chk.textContent = state.folded ? '展开全部' : '折叠看规律';
+    }else{
+      chk.textContent = '检查答案';
+    }
   }
 
-  document.getElementById('btnJumpTop').addEventListener('click', ()=>{
+  function toggleFold(){
     if(!state.lastCorrect) return;
     state.folded = !state.folded;
     updateFoldButton();
@@ -498,7 +505,9 @@
     }else if(correctCell){
       correctCell.scrollIntoView({behavior:'smooth', block:'center'});
     }
-  });
+  }
+
+  document.getElementById('btnJumpTop').addEventListener('click', toggleFold);
 
   function clearHighlights(){
     document.querySelectorAll('.cell').forEach(c=>{
@@ -587,6 +596,7 @@
   }
 
   document.getElementById('btnCheck').addEventListener('click', ()=>{
+    if(state.lastCorrect){ toggleFold(); return; }
     const guessCol = state.guessCol;
     const feedback = document.getElementById('feedback');
     if(!guessCol){
@@ -611,6 +621,7 @@
     renderFeedback(isRight, correct);
     if(isRight){ playCorrectSound(); } else { playWrongSound(); }
     showStamp(isRight);
+    updateFoldButton();
     if(state.revealedRows > DEMO_ROWS){
       document.getElementById('btnJumpTop').classList.add('show');
     }

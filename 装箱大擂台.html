@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>装箱大擂台</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a1220;
+    --panel:#122033;
+    --panel-2:#0e1a2b;
+    --line:#24405c;
+    --text:#eef4fa;
+    --muted:#8fa8bf;
+    --amber:#ffb703;
+    --cyan:#5ac8ff;
+    --good:#4ade80;
+    --bad:#fb7185;
+    --radius:16px;
+    --font-display:'Baloo 2','PingFang SC','Microsoft YaHei',sans-serif;
+    --font-mono:'JetBrains Mono',ui-monospace,monospace;
+    --font-body:'PingFang SC','Microsoft YaHei','Segoe UI',sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(900px 460px at 12% -10%, #16304d 0%, transparent 60%),
+      radial-gradient(800px 420px at 108% 15%, #14263c 0%, transparent 55%),
+      var(--bg);
+    color:var(--text);
+    font-family:var(--font-body);
+    padding:16px 14px 30px;
+  }
+  .wrap{max-width:1120px;margin:0 auto;}
+  header h1{
+    font-family:var(--font-display);font-size:clamp(1.3rem,3.2vw,1.8rem);
+    margin:0 0 2px;font-weight:800;color:var(--amber);
+  }
+  header p{color:var(--muted);margin:0;font-size:.86rem;}
+  section{
+    background:linear-gradient(180deg,var(--panel),var(--panel-2));
+    border:1px solid var(--line);border-radius:var(--radius);
+    padding:10px;margin-top:10px;
+  }
+  canvas#scene{width:100%;height:auto;display:block;border-radius:10px;touch-action:none;cursor:grab;}
+  canvas#scene.grabbing{cursor:grabbing;}
+
+  .hintbar{
+    display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:center;
+    margin-top:6px;font-size:.78rem;color:var(--muted);
+  }
+  .hintbar b{color:var(--cyan);}
+  .btn{
+    font-family:var(--font-display);font-weight:700;font-size:.84rem;border:none;
+    border-radius:9px;padding:8px 15px;cursor:pointer;transition:.15s transform,.15s filter;
+  }
+  .btn:hover{transform:translateY(-1px);filter:brightness(1.1);}
+  .btn.ghost{background:transparent;color:var(--text);border:1px solid var(--line);}
+
+  .cards{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;}
+  @media(max-width:760px){ .cards{grid-template-columns:repeat(3,1fr);} }
+  .card{
+    background:var(--panel-2);border:1px solid var(--line);border-radius:11px;
+    padding:8px 6px;text-align:center;opacity:.5;
+    transition:border-color .25s, box-shadow .25s, opacity .25s;
+  }
+  .card.open{opacity:1;border-color:var(--cyan);box-shadow:0 0 14px rgba(90,200,255,.22);}
+  .card.done{opacity:1;border-color:var(--good);box-shadow:0 0 16px rgba(74,222,128,.28);}
+  .card.best{border-color:var(--amber);box-shadow:0 0 22px rgba(255,183,3,.5);}
+  .card canvas{width:100%;height:54px;background:transparent;}
+  .card .lock{font-size:1.05rem;line-height:1.2;}
+  .card .dims{font-family:var(--font-mono);font-size:.7rem;color:var(--cyan);margin-top:3px;min-height:15px;}
+  .card .calc{font-family:var(--font-mono);font-weight:700;font-size:.86rem;color:var(--text);min-height:19px;}
+  .card .total{font-family:var(--font-mono);font-weight:700;font-size:1.1rem;color:var(--muted);min-height:22px;}
+  .card.done .total.revealed{color:var(--good);}
+  .card.done.best .total.revealed{color:var(--amber);}
+
+  .progress{text-align:center;font-size:.8rem;color:var(--muted);margin-top:8px;font-family:var(--font-mono);}
+
+  .quiz{display:none;}
+  .quiz.show{display:block;}
+  .quiz h2{font-family:var(--font-display);font-size:1.02rem;margin:0 0 8px;color:var(--amber);}
+  .qopts{display:flex;gap:8px;flex-wrap:wrap;}
+  .qopt{
+    font-family:var(--font-mono);font-weight:700;font-size:.82rem;cursor:pointer;
+    background:var(--panel-2);border:1px solid var(--line);color:var(--text);
+    border-radius:9px;padding:10px 13px;
+  }
+  .qopt:hover{border-color:var(--amber);}
+  .qopt.right{background:var(--good);color:#04150c;border-color:var(--good);}
+  .qopt.wrong{background:rgba(251,113,133,.15);border-color:var(--bad);color:var(--bad);}
+  .qresult{margin-top:10px;font-size:.9rem;line-height:1.75;display:none;padding:11px 14px;border-radius:9px;}
+  .qresult.show{display:block;}
+  .qresult.good{background:rgba(74,222,128,.12);color:var(--good);border:1px solid rgba(74,222,128,.35);}
+  .qresult.bad{background:rgba(251,113,133,.12);color:var(--bad);border:1px solid rgba(251,113,133,.35);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>📦 装箱大擂台</h1>
+    <p>转一转小长方体，把它拖进容器，看看每种朝向能装下多少个。</p>
+  </header>
+
+  <section>
+    <canvas id="scene" width="2160" height="1640"></canvas>
+    <div class="hintbar">
+      <span>在小长方体上拖动可<b>翻转它</b></span><span>·</span>
+      <span><b>点一下</b>选中，再<b>拖进容器</b></span><span>·</span>
+      <span>在容器上拖动可<b>转动视角</b></span>
+      <button class="btn ghost" id="btnRotY">⟲ 横着翻 90°</button>
+      <button class="btn ghost" id="btnRotX">⟳ 竖着翻 90°</button>
+      <button class="btn ghost" id="btnClear">清空容器</button>
+    </div>
+  </section>
+
+  <section>
+    <div class="cards" id="cards"></div>
+    <div class="progress" id="progress"></div>
+  </section>
+
+  <section class="quiz" id="quiz">
+    <h2>🏆 最后一问：哪种朝向装得最多？</h2>
+    <div class="qopts" id="qopts"></div>
+    <div class="qresult" id="qresult"></div>
+  </section>
+</div>
+
+<script>
+(function(){
+  const BOX = { x:70, y:50, z:24 };
+  const D   = [5, 4, 6];
+  const MAG = 5;
+
+  const el = id => document.getElementById(id);
+  const cv = el('scene'), ctx = cv.getContext('2d');
+  const W = cv.width/2, H = cv.height/2;
+  ctx.scale(2,2);
+
+  const PED_C = { x: W*0.50, y: H*0.13 };
+  const BOX_C = { x: W*0.50, y: H*0.62 };
+  const SC    = 8.0;
+
+  const state = {
+    cam:{ yaw:-0.62, pitch:0.40 },
+    small:{ M:[[1,0,0],[0,1,0],[0,0,1]] },
+    selected:false, hover:false, drag:null, carry:null,
+    packed:null, anim:null,
+    cards:{}, revealTotals:false, quizDone:false
+  };
+
+  const keyOf = e => e.join(',');
+  const ORIENTS = [];
+  (function(){
+    const seen=new Set();
+    [[0,1,2],[0,2,1],[1,0,2],[1,2,0],[2,0,1],[2,1,0]].forEach(p=>{
+      const ext=[D[p[0]],D[p[1]],D[p[2]]], k=keyOf(ext);
+      if(seen.has(k)) return; seen.add(k);
+      const nx=Math.floor(BOX.x/ext[0]), ny=Math.floor(BOX.y/ext[1]), nz=Math.floor(BOX.z/ext[2]);
+      ORIENTS.push({ ext, key:k, nx, ny, nz, total:nx*ny*nz });
+    });
+    ORIENTS.sort((a,b)=>a.key.localeCompare(b.key));
+  })();
+  const BEST = ORIENTS.reduce((m,o)=> o.total>m.total ? o : m, ORIENTS[0]);
+  ORIENTS.forEach(o=> state.cards[o.key]={ st:0, o });
+
+  function matMul(A,B){const C=[[0,0,0],[0,0,0],[0,0,0]];
+    for(let i=0;i<3;i++)for(let j=0;j<3;j++){let v=0;for(let k=0;k<3;k++)v+=A[i][k]*B[k][j];C[i][j]=v;}return C;}
+  function rotY(a){const c=Math.cos(a),s=Math.sin(a);return [[c,0,s],[0,1,0],[-s,0,c]];}
+  function rotX(a){const c=Math.cos(a),s=Math.sin(a);return [[1,0,0],[0,c,-s],[0,s,c]];}
+  function apply(R,p){return [R[0][0]*p[0]+R[0][1]*p[1]+R[0][2]*p[2],
+                              R[1][0]*p[0]+R[1][1]*p[1]+R[1][2]*p[2],
+                              R[2][0]*p[0]+R[2][1]*p[1]+R[2][2]*p[2]];}
+  function project(v,c,s){return {x:c.x+v[0]*s, y:c.y-v[1]*s, z:v[2]};}
+  function snapM(M){
+    const used=[false,false,false], R=[[0,0,0],[0,0,0],[0,0,0]];
+    [0,1,2].sort((a,b)=>Math.max(...M[b].map(Math.abs))-Math.max(...M[a].map(Math.abs))).forEach(i=>{
+      let best=-1,bv=-1;
+      for(let j=0;j<3;j++) if(!used[j]&&Math.abs(M[i][j])>bv){bv=Math.abs(M[i][j]);best=j;}
+      used[best]=true; R[i][best]= M[i][best]>=0?1:-1;
+    });
+    return R;
+  }
+  function extentsFromM(M){
+    const R=snapM(M), out=[0,0,0];
+    for(let i=0;i<3;i++)for(let j=0;j<3;j++) if(R[i][j]) out[i]=D[j];
+    return out;
+  }
+
+  const FACES=[{i:[0,1,2,3],n:[0,0,-1]},{i:[4,5,6,7],n:[0,0,1]},
+               {i:[0,1,5,4],n:[0,-1,0]},{i:[3,2,6,7],n:[0,1,0]},
+               {i:[0,3,7,4],n:[-1,0,0]},{i:[1,2,6,5],n:[1,0,0]}];
+  function boxVerts(o,d){const x=o[0],y=o[1],z=o[2],a=d[0],b=d[1],c=d[2];return[
+    [x,y,z],[x+a,y,z],[x+a,y+b,z],[x,y+b,z],
+    [x,y,z+c],[x+a,y,z+c],[x+a,y+b,z+c],[x,y+b,z+c]];}
+
+  function drawBox(verts,R,c,s,opt){
+    const P=verts.map(v=>project(apply(R,v),c,s));
+    FACES.map(f=>({f,nz:apply(R,f.n)[2],depth:f.i.reduce((t,k)=>t+P[k].z,0)/4}))
+      .sort((a,b)=>a.depth-b.depth)
+      .forEach(o=>{
+        const f=o.f, nz=o.nz;
+        if(opt.hollow && nz>=0) return;
+        if(opt.frontOnly && nz<0) return;
+        ctx.beginPath();
+        f.i.forEach((k,i)=> i?ctx.lineTo(P[k].x,P[k].y):ctx.moveTo(P[k].x,P[k].y));
+        ctx.closePath();
+        if(opt.fill){ ctx.fillStyle=opt.fill(0.55+0.45*Math.abs(nz)); ctx.fill(); }
+        if(opt.stroke){ ctx.strokeStyle=opt.stroke; ctx.lineWidth=opt.lw||1; ctx.stroke(); }
+        if(opt.grid) opt.grid(f,P);
+      });
+    return P;
+  }
+  function gridOnFace(f,P,counts){
+    const AX=[[0,1,2,3],[4,5,6,7],[0,1,5,4],[3,2,6,7],[0,3,7,4],[1,2,6,5]];
+    const idx=AX.findIndex(a=>a.join()===f.i.join());
+    const sub=[[counts[0],counts[1]],[counts[0],counts[1]],
+               [counts[0],counts[2]],[counts[0],counts[2]],
+               [counts[2],counts[1]],[counts[2],counts[1]]][idx];
+    const a=P[f.i[0]],b=P[f.i[1]],c=P[f.i[2]],d=P[f.i[3]];
+    ctx.strokeStyle='rgba(255,255,255,.18)'; ctx.lineWidth=.7;
+    for(let i=1;i<sub[0];i++){const t=i/sub[0];ctx.beginPath();
+      ctx.moveTo(a.x+(b.x-a.x)*t,a.y+(b.y-a.y)*t); ctx.lineTo(d.x+(c.x-d.x)*t,d.y+(c.y-d.y)*t); ctx.stroke();}
+    for(let i=1;i<sub[1];i++){const t=i/sub[1];ctx.beginPath();
+      ctx.moveTo(a.x+(d.x-a.x)*t,a.y+(d.y-a.y)*t); ctx.lineTo(b.x+(c.x-b.x)*t,b.y+(c.y-b.y)*t); ctx.stroke();}
+  }
+
+  let ac=null;
+  function AC(){if(!ac)ac=new(window.AudioContext||window.webkitAudioContext)();if(ac.state==='suspended')ac.resume();return ac;}
+  function tone(f,dur,type,vol,delay){
+    try{const c=AC(),t=c.currentTime+(delay||0);
+      const o=c.createOscillator(),g=c.createGain();
+      o.type=type||'sine';o.frequency.setValueAtTime(f,t);
+      g.gain.setValueAtTime(.0001,t);
+      g.gain.exponentialRampToValueAtTime(vol||.16,t+.012);
+      g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+      o.connect(g);g.connect(c.destination);o.start(t);o.stop(t+dur+.02);}catch(e){}
+  }
+  const sndSnap  =function(){tone(420,.06,'triangle',.08);};
+  const sndUnlock=function(){tone(660,.12,'sine',.16,0);tone(990,.22,'sine',.16,.1);};
+  const sndTick  =function(p){tone(520+p*520,.045,'square',.045);};
+  const sndDone  =function(){[523,659,784,1046].forEach(function(f,i){tone(f,.34,'sine',.14,i*.07);});};
+  const sndWin   =function(){[523,659,784,1046,1318].forEach(function(f,i){tone(f,.42,'sine',.18,i*.1);});};
+  const sndErr   =function(){tone(150,.25,'sawtooth',.14);};
+
+  const FILL_MS = 2600, FLY_MS = 420;
+  function startPacking(o){
+    const ext=o.ext, cells=[];
+    const origin=[-BOX.x/2,-BOX.y/2,-BOX.z/2];
+    for(let iy=0;iy<o.ny;iy++)
+      for(let iz=0;iz<o.nz;iz++)
+        for(let ix=0;ix<o.nx;ix++)
+          cells.push({ ix:ix,iy:iy,iz:iz,
+            t:[origin[0]+ix*ext[0], origin[1]+iy*ext[1], origin[2]+iz*ext[2]] });
+    const gap = FILL_MS/Math.max(1,cells.length);
+    cells.forEach(function(c,i){
+      c.delay = i*gap;
+      c.from = [ c.t[0]+(Math.random()*2-1)*26,
+                 c.t[1]+70+Math.random()*50,
+                 c.t[2]+(Math.random()*2-1)*26 ];
+    });
+    state.packed = { o:o, ext:ext, nx:o.nx, ny:o.ny, nz:o.nz };
+    state.anim = { cells:cells, t0:performance.now(), lastTick:0, perLayer:o.nx*o.nz };
+    loop();
+  }
+  function loop(){
+    const a=state.anim;
+    if(!a) return;
+    const now=performance.now(), t=now-a.t0;
+    if(now-a.lastTick>55){
+      const p=Math.min(1,t/FILL_MS);
+      if(p<1){ sndTick(p); a.lastTick=now; }
+    }
+    draw();
+    if(t < FILL_MS+FLY_MS+60) requestAnimationFrame(loop);
+    else { state.anim=null; sndDone(); draw(); }
+  }
+  function easeOut(t){ return 1-Math.pow(1-t,3); }
+
+  function rotM(){ return matMul(rotX(state.cam.pitch), rotY(state.cam.yaw)); }
+  const bodyFont=function(){return "'PingFang SC','Microsoft YaHei',sans-serif";};
+  const monoFont=function(){return "'JetBrains Mono',monospace";};
+
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    const Rc=rotM();
+    const origin=[-BOX.x/2,-BOX.y/2,-BOX.z/2];
+
+    drawBox(boxVerts(origin,[BOX.x,BOX.y,BOX.z]),Rc,BOX_C,SC,{
+      hollow:true, fill:function(sh){return 'rgba(30,58,90,'+(0.32*sh+0.10)+')';},
+      stroke:'rgba(120,170,220,.55)', lw:1.4 });
+
+    if(state.packed) drawFill(Rc, origin);
+
+    drawBox(boxVerts(origin,[BOX.x,BOX.y,BOX.z]),Rc,BOX_C,SC,{
+      frontOnly:true, stroke:'rgba(140,190,240,.34)', lw:1.2 });
+
+    if(!state.packed){
+      sideLabels(Rc,[BOX.x+' cm', BOX.y+' cm', BOX.z+' cm'],'rgba(170,210,245,.95)');
+    }else{
+      drawCounts(Rc, origin);
+    }
+
+    if(!state.carry) drawSmall(PED_C, PED_S());
+    const e=extentsFromM(state.small.M);
+    ctx.textAlign='center';
+    ctx.font='600 14px '+bodyFont(); ctx.fillStyle='rgba(143,168,191,.9)';
+    ctx.fillText('小长方体 X（放大 '+MAG+' 倍显示）', PED_C.x, PED_C.y+104);
+    ctx.font='700 21px '+monoFont();
+    ctx.fillStyle=state.selected?'#ffb703':'#5ac8ff';
+    ctx.fillText('长 '+e[0]+'　高 '+e[1]+'　深 '+e[2], PED_C.x, PED_C.y+132);
+    const cur=state.cards[keyOf(e)];
+    ctx.font='600 15px '+bodyFont();
+    if(state.selected){
+      ctx.fillStyle='rgba(255,183,3,.95)';
+      ctx.fillText('已选中 — 拖进下面的容器', PED_C.x, PED_C.y+156);
+    }else if(cur && cur.st===2){
+      ctx.fillStyle='rgba(143,168,191,.95)';
+      ctx.fillText('这个朝向已经装过了 — 翻一面试试', PED_C.x, PED_C.y+156);
+    }else if(cur && cur.st===1){
+      ctx.fillStyle='rgba(90,200,255,.95)';
+      ctx.fillText('这个朝向还没装箱 — 点一下再拖进容器', PED_C.x, PED_C.y+156);
+    }else{
+      ctx.fillStyle='rgba(74,222,128,.95)';
+      ctx.fillText('✨ 新朝向！点一下解锁', PED_C.x, PED_C.y+156);
+    }
+    if(state.carry) drawSmall(state.carry, PED_S());
+  }
+
+  function drawFill(Rc, origin){
+    const p=state.packed, ext=p.ext, a=state.anim;
+    if(!a){
+      drawBox(boxVerts(origin,[p.nx*ext[0],p.ny*ext[1],p.nz*ext[2]]),Rc,BOX_C,SC,{
+        fill:function(sh){return 'rgba(255,183,3,'+(0.44*sh+0.16)+')';},
+        stroke:'rgba(255,205,80,.9)', lw:1.2,
+        grid:function(f,P){gridOnFace(f,P,[p.nx,p.ny,p.nz]);} });
+      return;
+    }
+    const t=performance.now()-a.t0;
+    let fullLayers=0;
+    for(let iy=0; iy<p.ny; iy++){
+      const lastIdx=(iy+1)*a.perLayer-1;
+      if(t >= a.cells[lastIdx].delay+FLY_MS) fullLayers=iy+1; else break;
+    }
+    if(fullLayers>0){
+      drawBox(boxVerts(origin,[p.nx*ext[0],fullLayers*ext[1],p.nz*ext[2]]),Rc,BOX_C,SC,{
+        fill:function(sh){return 'rgba(255,183,3,'+(0.44*sh+0.16)+')';},
+        stroke:'rgba(255,205,80,.9)', lw:1.2,
+        grid:function(f,P){gridOnFace(f,P,[p.nx,fullLayers,p.nz]);} });
+    }
+    const moving=[];
+    for(let i=fullLayers*a.perLayer; i<a.cells.length; i++){
+      const c=a.cells[i];
+      const k=(t-c.delay)/FLY_MS;
+      if(k<=0) continue;
+      const e=easeOut(Math.min(1,k));
+      const pos=[ c.from[0]+(c.t[0]-c.from[0])*e,
+                  c.from[1]+(c.t[1]-c.from[1])*e,
+                  c.from[2]+(c.t[2]-c.from[2])*e ];
+      const depth=apply(Rc,[pos[0]+ext[0]/2,pos[1]+ext[1]/2,pos[2]+ext[2]/2])[2];
+      moving.push({pos:pos,depth:depth,k:Math.min(1,k)});
+    }
+    moving.sort(function(m,n){return m.depth-n.depth;});
+    moving.forEach(function(m){
+      ctx.globalAlpha = m.k<1 ? 0.45+0.55*m.k : 1;
+      drawBox(boxVerts(m.pos,ext),Rc,BOX_C,SC,{
+        fill:function(sh){return 'rgba(255,183,3,'+(0.52*sh+0.18)+')';},
+        stroke:'rgba(120,80,10,.55)', lw:.7 });
+      ctx.globalAlpha=1;
+    });
+  }
+
+  function drawCounts(Rc, origin){
+    const p=state.packed;
+    sideLabels(Rc,[
+      BOX.x+' ÷ '+p.ext[0]+' = '+p.nx+' 个',
+      BOX.y+' ÷ '+p.ext[1]+' = '+p.ny+' 个',
+      BOX.z+' ÷ '+p.ext[2]+' = '+p.nz+' 个'
+    ],'#ffd166');
+    const expr=p.nx+' × '+p.ny+' × '+p.nz;
+    ctx.textAlign='left';
+    ctx.font='600 15px '+bodyFont(); ctx.fillStyle='rgba(143,168,191,.9)';
+    ctx.fillText('这一次装了', 28, 40);
+    ctx.font='800 38px '+monoFont(); ctx.fillStyle='#ffb703';
+    ctx.fillText(state.revealTotals ? expr+' = '+(p.nx*p.ny*p.nz)+' 个' : expr+' = ?', 28, 82);
+    ctx.textAlign='center';
+  }
+
+  // outer bounds of the container on screen — labels hang off these, so they can
+  // never end up drawn on top of the packed block
+  function containerBBox(R){
+    const P=boxVerts([-BOX.x/2,-BOX.y/2,-BOX.z/2],[BOX.x,BOX.y,BOX.z])
+              .map(function(v){return project(apply(R,v),BOX_C,SC);});
+    const xs=P.map(function(q){return q.x;}), ys=P.map(function(q){return q.y;});
+    return { l:Math.min.apply(null,xs), r:Math.max.apply(null,xs),
+             t:Math.min.apply(null,ys), b:Math.max.apply(null,ys) };
+  }
+  function sideLabels(R, texts, color){
+    const bb=containerBBox(R);
+    ctx.fillStyle=color;
+    ctx.font='700 19px '+monoFont();
+    ctx.textAlign='center';
+    // clamp into the canvas so a wide/tall view never pushes a label off the edge
+    ctx.fillText(texts[0], (bb.l+bb.r)/2, Math.min(bb.b+38, H-14));   // 长：底部
+    ctx.textAlign='left';
+    ctx.fillText(texts[1], Math.min(bb.r+18, W-190), (bb.t+bb.b)/2);  // 高：右侧
+    ctx.textAlign='right';
+    ctx.fillText(texts[2], Math.max(bb.l-18, 190), Math.max(bb.t+46, 120)); // 深：左上
+    ctx.textAlign='center';
+  }
+
+  function label(R,p,off,txt,color,size){
+    const q=project(apply(R,p),BOX_C,SC);
+    ctx.font='700 '+(size||14)+'px '+monoFont();
+    ctx.fillStyle=color;
+    ctx.fillText(txt,q.x+off[0],q.y+off[1]);
+  }
+  function drawSmall(c,s){
+    const lit=state.selected||state.hover;
+    drawBox(boxVerts([-D[0]/2,-D[1]/2,-D[2]/2],D),matMul(rotM(),state.small.M),c,s,{
+      fill:function(sh){return state.selected?'rgba(255,183,3,'+(0.55*sh+0.2)+')':'rgba(90,200,255,'+(0.45*sh+0.18)+')';},
+      stroke: lit?'rgba(255,255,255,.95)':'rgba(180,220,255,.75)', lw: lit?2:1.4 });
+  }
+
+  function smallBBox(c,s){
+    const RS=matMul(rotM(),state.small.M);
+    const P=boxVerts([-D[0]/2,-D[1]/2,-D[2]/2],D).map(function(v){return project(apply(RS,v),c,s);});
+    const xs=P.map(function(p){return p.x;}), ys=P.map(function(p){return p.y;});
+    return {x0:Math.min.apply(null,xs)-10,x1:Math.max.apply(null,xs)+10,
+            y0:Math.min.apply(null,ys)-10,y1:Math.max.apply(null,ys)+10};
+  }
+  const inBox=function(b,x,y){return x>=b.x0&&x<=b.x1&&y>=b.y0&&y<=b.y1;};
+  function overContainer(x,y){
+    return Math.abs(x-BOX_C.x) < BOX.x*SC*0.62 && Math.abs(y-BOX_C.y) < BOX.y*SC*0.80;
+  }
+  function pos(e){
+    const r=cv.getBoundingClientRect();
+    return {x:(e.clientX-r.left)*(W/r.width), y:(e.clientY-r.top)*(H/r.height)};
+  }
+  const PED_S = function(){ return SC*MAG*0.44; };
+
+  cv.addEventListener('pointerdown',function(e){
+    const p=pos(e); cv.setPointerCapture(e.pointerId); cv.classList.add('grabbing');
+    if(inBox(smallBBox(PED_C,PED_S()),p.x,p.y)){
+      state.drag={mode: state.selected?'carry':'spin', x:p.x,y:p.y,moved:0};
+      if(state.selected) state.carry={x:p.x,y:p.y};
+    }else state.drag={mode:'cam',x:p.x,y:p.y,moved:0};
+    draw();
+  });
+  cv.addEventListener('pointermove',function(e){
+    const p=pos(e);
+    if(!state.drag){
+      const h=inBox(smallBBox(PED_C,PED_S()),p.x,p.y);
+      if(h!==state.hover){state.hover=h;cv.style.cursor=h?'pointer':'grab';draw();}
+      return;
+    }
+    const dx=p.x-state.drag.x, dy=p.y-state.drag.y;
+    state.drag.moved+=Math.abs(dx)+Math.abs(dy);
+    state.drag.x=p.x; state.drag.y=p.y;
+    if(state.drag.mode==='cam'){
+      state.cam.yaw+=dx*0.010;
+      state.cam.pitch=Math.max(-1.2,Math.min(1.2,state.cam.pitch+dy*0.010));
+    }else if(state.drag.mode==='spin'){
+      state.small.M=matMul(rotX(dy*0.012),matMul(rotY(dx*0.012),state.small.M));
+    }else state.carry={x:p.x,y:p.y};
+    draw();
+  });
+  cv.addEventListener('pointerup',function(e){
+    const p=pos(e); cv.classList.remove('grabbing');
+    const d=state.drag; state.drag=null; if(!d) return;
+    if(d.mode==='spin'){
+      if(d.moved<5) selectSmall();
+      else { state.small.M=snapM(state.small.M); sndSnap(); state.selected=false; }
+    }else if(d.mode==='carry'){
+      if(overContainer(p.x,p.y)) packNow();
+      else state.selected=false;   // dropped outside → put it back, so dragging rotates again
+      state.carry=null;
+    }
+    draw();
+  });
+
+  function selectSmall(){
+    state.small.M=snapM(state.small.M);
+    state.selected=true;
+    const c=state.cards[keyOf(extentsFromM(state.small.M))];
+    if(c&&c.st===0){ c.st=1; sndUnlock(); renderCards(); } else sndSnap();
+  }
+  function packNow(){
+    const key=keyOf(extentsFromM(state.small.M));
+    const o=ORIENTS.filter(function(x){return x.key===key;})[0];
+    const c=state.cards[o.key];
+    if(c.st<2) c.st=2;
+    state.selected=false;
+    startPacking(o);
+    renderCards();
+  }
+  function turn(R){
+    state.small.M = snapM(matMul(R, snapM(state.small.M)));
+    state.selected = false;
+    sndSnap();
+    draw();
+  }
+  el('btnRotY').addEventListener('click',function(){ turn(rotY(Math.PI/2)); });
+  el('btnRotX').addEventListener('click',function(){ turn(rotX(Math.PI/2)); });
+  el('btnClear').addEventListener('click',function(){ state.packed=null; state.anim=null; draw(); });
+
+  function drawMini(canvas,ext,on){
+    const c2=canvas.getContext('2d'), w=canvas.width, h=canvas.height;
+    c2.clearRect(0,0,w,h);
+    if(!on){
+      c2.font='700 22px '+bodyFont(); c2.textAlign='center'; c2.textBaseline='middle';
+      c2.fillStyle='rgba(143,168,191,.5)'; c2.fillText('🔒',w/2,h/2); return;
+    }
+    const R=matMul(rotX(0.42),rotY(-0.62)), s=3.4, cc={x:w/2,y:h/2};
+    const P=boxVerts([-ext[0]/2,-ext[1]/2,-ext[2]/2],ext).map(function(v){return project(apply(R,v),cc,s);});
+    FACES.map(function(f){return {f:f,nz:apply(R,f.n)[2],depth:f.i.reduce(function(t,k){return t+P[k].z;},0)/4};})
+      .sort(function(a,b){return a.depth-b.depth;})
+      .forEach(function(o){
+        const f=o.f;
+        c2.beginPath();
+        f.i.forEach(function(k,i){ i?c2.lineTo(P[k].x,P[k].y):c2.moveTo(P[k].x,P[k].y); });
+        c2.closePath();
+        c2.fillStyle='rgba(90,200,255,'+(0.5*(0.55+0.45*Math.abs(o.nz)))+')'; c2.fill();
+        c2.strokeStyle='rgba(200,230,255,.85)'; c2.lineWidth=1; c2.stroke();
+      });
+  }
+  function renderCards(){
+    const wrap=el('cards');
+    if(!wrap.children.length){
+      ORIENTS.forEach(function(o){
+        const d=document.createElement('div');
+        d.className='card'; d.id='card-'+o.key;
+        d.innerHTML='<canvas width="170" height="108"></canvas>'
+          +'<div class="lock">🔒</div><div class="dims"></div>'
+          +'<div class="calc"></div><div class="total"></div>';
+        wrap.appendChild(d);
+      });
+    }
+    let done=0, found=0;
+    ORIENTS.forEach(function(o){
+      const c=state.cards[o.key], d=el('card-'+o.key), on=c.st>=1;
+      drawMini(d.querySelector('canvas'),o.ext,on);
+      d.className='card'+(c.st===1?' open':'')+(c.st===2?' done':'')
+        +(state.revealTotals&&o.key===BEST.key?' best':'');
+      d.querySelector('.lock').textContent=c.st===0?'🔒':(c.st===1?'🔓':'✅');
+      d.querySelector('.dims').textContent= on?('长'+o.ext[0]+' 高'+o.ext[1]+' 深'+o.ext[2]):'? × ? × ?';
+      d.querySelector('.calc').textContent= c.st===2?(o.nx+' × '+o.ny+' × '+o.nz):'';
+      const t=d.querySelector('.total');
+      t.textContent = c.st===2 ? (state.revealTotals? o.total : '= ?') : '';
+      t.className = 'total'+(state.revealTotals?' revealed':'');
+      if(c.st>=1) found++;
+      if(c.st===2) done++;
+    });
+    el('progress').textContent =
+      '🔓 已发现 '+found+' / '+ORIENTS.length+' 种朝向　✅ 已装箱 '+done+' / '+ORIENTS.length
+      + (done<ORIENTS.length ? '　— 继续翻转、选中、拖进容器' : '　— 全部装完了！比一比哪种最多');
+    if(done===ORIENTS.length) showQuiz();
+  }
+
+  function showQuiz(){
+    const q=el('quiz'); if(q.classList.contains('show')) return;
+    q.classList.add('show');
+    const box=el('qopts'); box.innerHTML='';
+    ORIENTS.forEach(function(o){
+      const b=document.createElement('button');
+      b.className='qopt';
+      b.textContent='长'+o.ext[0]+' 高'+o.ext[1]+' 深'+o.ext[2]+'　('+o.nx+'×'+o.ny+'×'+o.nz+')';
+      b.addEventListener('click',function(){
+        if(state.quizDone) return;
+        const right=o.key===BEST.key;
+        b.classList.add(right?'right':'wrong');
+        const r=el('qresult');
+        if(right){
+          state.quizDone=true; state.revealTotals=true;
+          sndWin(); renderCards(); draw();
+          Array.prototype.forEach.call(box.children,function(x){x.disabled=true;});
+          r.className='qresult show good';
+          r.innerHTML='✔ 正确！把 <b>'+BEST.ext[0]+'cm</b> 放在 70cm 的长上、<b>'+BEST.ext[1]+'cm</b> 放在 50cm 的高上、'
+            +'<b>'+BEST.ext[2]+'cm</b> 放在 24cm 的深上，'+BEST.nx+' × '+BEST.ny+' × '+BEST.nz+' = <b>'+BEST.total+'</b> 个。<br>'
+            +'注意：容器体积 ÷ 小长方体体积 = 84000 ÷ 120 = 700，但 700 个是装不下的——'
+            +'每条边都可能剩下一小截空隙，所以必须按边长一条一条地算。';
+        }else{
+          sndErr();
+          r.className='qresult show bad';
+          r.innerHTML='✘ 再比一比：'+o.nx+' × '+o.ny+' × '+o.nz+' 真的是最大的吗？';
+        }
+      });
+      box.appendChild(b);
+    });
+  }
+
+  renderCards(); draw();
+})();
+</script>
+</body>
+</html>
