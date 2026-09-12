@@ -34,7 +34,8 @@
     font-family:var(--font-body);
     padding:16px 14px 30px;
   }
-  .wrap{max-width:1120px;margin:0 auto;}
+  .wrap{max-width:760px;margin:0 auto;transition:max-width .28s ease;}
+  .wrap.wide{max-width:min(1600px, 98vw);}
   header h1{
     font-family:var(--font-display);font-size:clamp(1.3rem,3.2vw,1.8rem);
     margin:0 0 2px;font-weight:800;color:var(--amber);
@@ -111,6 +112,7 @@
       <span>在小长方体上拖动可<b>翻转它</b></span><span>·</span>
       <span><b>点一下</b>选中，再<b>拖进容器</b></span><span>·</span>
       <span>在容器上拖动可<b>转动视角</b></span>
+      <button class="btn ghost" id="btnWide">⛶ 适应屏幕宽度</button>
       <button class="btn ghost" id="btnRotY">⟲ 横着翻 90°</button>
       <button class="btn ghost" id="btnRotX">⟳ 竖着翻 90°</button>
       <button class="btn ghost" id="btnClear">清空容器</button>
@@ -506,6 +508,18 @@
   el('btnRotY').addEventListener('click',function(){ turn(rotY(Math.PI/2)); });
   el('btnRotX').addEventListener('click',function(){ turn(rotX(Math.PI/2)); });
   el('btnClear').addEventListener('click',function(){ state.packed=null; state.anim=null; draw(); });
+
+  // width toggle: matches the other tools by default, expands when the student wants a bigger stage
+  var wideOn=false;
+  try{ wideOn = localStorage.getItem('packWide')==='1'; }catch(e){}
+  function applyWide(){
+    document.querySelector('.wrap').classList.toggle('wide', wideOn);
+    el('btnWide').textContent = wideOn ? '⛶ 回到标准宽度' : '⛶ 适应屏幕宽度';
+    try{ localStorage.setItem('packWide', wideOn?'1':'0'); }catch(e){}
+    draw();
+  }
+  el('btnWide').addEventListener('click',function(){ wideOn=!wideOn; applyWide(); });
+  applyWide();
 
   function drawMini(canvas,ext,on){
     const c2=canvas.getContext('2d'), w=canvas.width, h=canvas.height;
