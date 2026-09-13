@@ -41,6 +41,8 @@
     margin:0 0 2px;font-weight:800;color:var(--amber);
   }
   header p{color:var(--muted);margin:0;font-size:.86rem;}
+  .htop{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
+  .htop-right{display:flex;gap:8px;}
   section{
     background:linear-gradient(180deg,var(--panel),var(--panel-2));
     border:1px solid var(--line);border-radius:var(--radius);
@@ -49,11 +51,44 @@
   canvas#scene{width:100%;height:auto;display:block;border-radius:10px;touch-action:none;cursor:grab;}
   canvas#scene.grabbing{cursor:grabbing;}
 
-  .hintbar{
-    display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:center;
-    margin-top:6px;font-size:.78rem;color:var(--muted);
+  .stagewrap{position:relative;}
+  .turnbtns{
+    position:absolute;left:14px;top:64%;z-index:3;
+    display:flex;flex-direction:row;gap:10px;align-items:center;
   }
-  .hintbar b{color:var(--cyan);}
+  .bubble{
+    width:52px;height:52px;border-radius:50%;border:none;cursor:pointer;
+    font-size:1.5rem;font-weight:700;color:#04150c;
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 4px 14px rgba(0,0,0,.35), inset 0 -4px 8px rgba(0,0,0,.15);
+    transition:transform .35s cubic-bezier(.34,1.56,.64,1), opacity .35s, box-shadow .2s, background .3s, color .3s;
+    position:relative; overflow:visible;
+  }
+  .bubble:hover{transform:translateY(-3px) scale(1.06);}
+  .bubble:active{transform:scale(.92);}
+  .bubble-cyan{background:radial-gradient(circle at 32% 28%, #bdeaff, #5ac8ff 60%, #1f8fc9);}
+  .bubble-pink{background:radial-gradient(circle at 32% 28%, #ffd7de, #ff6b81 60%, #d63a54);}
+  .bubble-amber{background:radial-gradient(circle at 32% 28%, #fff0c2, #ffb703 60%, #c98600);}
+  .bubble.retired{
+    background:#33334d; color:#6c6c88;
+    box-shadow:inset 0 2px 4px rgba(0,0,0,.4);
+    pointer-events:none; cursor:default;
+    animation:popSettle .5s cubic-bezier(.34,1.56,.64,1);
+  }
+  @keyframes popSettle{
+    0%{ transform:scale(1); }
+    35%{ transform:scale(1.35); }
+    100%{ transform:scale(1); }
+  }
+  .pop-particle{
+    position:absolute; bottom:52%; left:50%; pointer-events:none;
+    font-size:11px; opacity:.9; z-index:5;
+    animation:bubbleFloat .8s ease-out forwards;
+  }
+  @keyframes bubbleFloat{
+    0%{ transform:translate(-50%,0) scale(.6); opacity:.9; }
+    100%{ transform:translate(-50%,-42px) scale(1.15); opacity:0; }
+  }
   .btn{
     font-family:var(--font-display);font-weight:700;font-size:.84rem;border:none;
     border-radius:9px;padding:8px 15px;cursor:pointer;transition:.15s transform,.15s filter;
@@ -79,12 +114,22 @@
   .card.done .total.revealed{color:var(--good);}
   .card.done.best .total.revealed{color:var(--amber);}
 
-  .progress{text-align:center;font-size:.8rem;color:var(--muted);margin-top:8px;font-family:var(--font-mono);}
+  .progressbar{
+    height:5px;border-radius:3px;background:var(--panel-2);border:1px solid var(--line);
+    overflow:hidden;margin-bottom:8px;
+  }
+  .progressbar-fill{
+    height:100%;width:0%;border-radius:3px;
+    background:linear-gradient(90deg,var(--cyan),var(--good));
+    transition:width .5s ease;
+  }
+  .progress{text-align:center;font-size:.84rem;color:var(--muted);margin:2px 0 10px;font-family:var(--font-mono);}
 
   .quiz{display:none;}
   .quiz.show{display:block;}
   .quiz h2{font-family:var(--font-display);font-size:1.02rem;margin:0 0 8px;color:var(--amber);}
-  .qopts{display:flex;gap:8px;flex-wrap:wrap;}
+  .qopts{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
+  @media(max-width:480px){ .qopts{grid-template-columns:1fr;} }
   .qopt{
     font-family:var(--font-mono);font-weight:700;font-size:.82rem;cursor:pointer;
     background:var(--panel-2);border:1px solid var(--line);color:var(--text);
@@ -97,82 +142,157 @@
   .qresult.show{display:block;}
   .qresult.good{background:rgba(74,222,128,.12);color:var(--good);border:1px solid rgba(74,222,128,.35);}
   .qresult.bad{background:rgba(251,113,133,.12);color:var(--bad);border:1px solid rgba(251,113,133,.35);}
+  .qrestart{margin-top:12px;text-align:center;}
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <h1>📦 装箱大擂台</h1>
-    <p>转一转小长方体，把它拖进容器，看看每种朝向能装下多少个。</p>
+    <div class="htop">
+      <h1>📦 装箱大擂台</h1>
+      <div class="htop-right">
+        <button class="btn ghost" id="btnRestart">🔄 重新开始</button>
+        <button class="btn ghost" id="btnWide">⛶ 适应屏幕宽度</button>
+      </div>
+    </div>
+    <p>小长方体，可随意翻转，也可以拖进容器，试试看：哪种朝向能装最多。</p>
   </header>
 
-  <section>
-    <canvas id="scene" width="2160" height="1640"></canvas>
-    <div class="hintbar">
-      <span>在小长方体上拖动可<b>翻转它</b></span><span>·</span>
-      <span><b>点一下</b>选中，再<b>拖进容器</b></span><span>·</span>
-      <span>在容器上拖动可<b>转动视角</b></span>
-      <button class="btn ghost" id="btnWide">⛶ 适应屏幕宽度</button>
-      <button class="btn ghost" id="btnRotY">⟲ 横着翻 90°</button>
-      <button class="btn ghost" id="btnRotX">⟳ 竖着翻 90°</button>
-      <button class="btn ghost" id="btnClear">清空容器</button>
+  <section id="stageSection">
+    <div class="stagewrap">
+      <canvas id="scene" width="2160" height="1200"></canvas>
+      <div class="turnbtns" id="turnbtns">
+        <button class="bubble bubble-cyan" id="btnRotY" title="横着翻 90°">⟲</button>
+        <button class="bubble bubble-pink" id="btnRotX" title="竖着翻 90°">⟳</button>
+        <button class="bubble bubble-amber" id="btnRotZ" title="自转 90°">↻</button>
+      </div>
     </div>
   </section>
 
-  <section>
-    <div class="cards" id="cards"></div>
+  <section id="cardsSection">
+    <div class="progressbar"><div class="progressbar-fill" id="progressFill"></div></div>
     <div class="progress" id="progress"></div>
+    <div class="cards" id="cards"></div>
   </section>
 
   <section class="quiz" id="quiz">
     <h2>🏆 最后一问：哪种朝向装得最多？</h2>
     <div class="qopts" id="qopts"></div>
     <div class="qresult" id="qresult"></div>
+    <div class="qrestart"><button class="btn ghost" id="btnRestart2">🔄 重新开始</button></div>
   </section>
 </div>
 
 <script>
 (function(){
-  const BOX = { x:70, y:50, z:24 };
-  const D   = [5, 4, 6];
+  let BOX = { x:70, y:50, z:24 };
+  let D   = [5, 4, 6];
   const MAG = 5;
+
+  const LEVELS = [
+    { box:{x:70,y:50,z:24}, d:[5,4,6],  label:'经典款' },
+    { box:{x:6, y:6, z:12}, d:[6,4,5],  label:'迷你款' },
+    { box:{x:15,y:19,z:21}, d:[5,3,4],  label:'加大款（每边≥2倍）' },
+    { box:{x:24,y:31,z:33}, d:[3,4,5],  label:'超大款（每边≥4倍）' }
+  ];
+  let levelIndex = 0;
 
   const el = id => document.getElementById(id);
   const cv = el('scene'), ctx = cv.getContext('2d');
   const W = cv.width/2, H = cv.height/2;
   ctx.scale(2,2);
 
-  const PED_C = { x: W*0.50, y: H*0.13 };
-  const BOX_C = { x: W*0.50, y: H*0.62 };
-  const SC    = 8.0;
+  const PED_C = { x: W*0.16, y: H*0.26 };
+  const BOX_C = { x: W*0.61, y: H*0.50 };
+  let SC = 6.6;
+  const TARGET_BOX_PX = 462;   // keeps the container the same on-screen size at any scale
+  const TARGET_PED_PX = 150;   // keeps the pedestal cuboid the same on-screen size at any scale
 
   const state = {
     cam:{ yaw:-0.62, pitch:0.40 },
     small:{ M:[[1,0,0],[0,1,0],[0,0,1]] },
     selected:false, hover:false, drag:null, carry:null,
     packed:null, anim:null,
-    cards:{}, revealTotals:false, quizDone:false
+    cards:{}, revealTotals:false, quizDone:false, nudge:0,
+    completedScrolled:false
   };
 
   const keyOf = e => e.join(',');
-  const ORIENTS = [];
-  (function(){
+  let ORIENTS = [];
+  let MAXTOTAL = 0;
+  let FIXEDPAIRS = {};   // axis -> [keyA, keyB], fixed once per level so each button always
+                         // toggles the SAME two orientations, however the cuboid got there
+
+  function keyToM(key){
+    // rebuild a pure permutation matrix from an extents key like "6,4,5"
+    const vals = key.split(',').map(Number);
+    const M = [[0,0,0],[0,0,0],[0,0,0]];
+    for(let i=0;i<3;i++){ M[i][D.indexOf(vals[i])] = 1; }
+    return M;
+  }
+  function computeFixedPairs(){
+    const keys = ORIENTS.map(function(o){ return o.key; });
+    const used = {};
+    const pairs = {};
+    const transforms = { Y:function(){return rotY(Math.PI/2);}, X:function(){return rotX(Math.PI/2);}, Z:function(){return rotZ(Math.PI/2);} };
+    ['Y','X','Z'].forEach(function(axis){
+      for(let i=0;i<keys.length;i++){
+        const k = keys[i];
+        if(used[k]) continue;
+        const partner = keyOf(extentsFromM(matMul(transforms[axis](), keyToM(k))));
+        if(partner!==k && !used[partner]){
+          pairs[axis] = [k, partner];
+          used[k]=true; used[partner]=true;
+          break;
+        }
+      }
+    });
+    return pairs;
+  }
+
+  function buildLevel(idx){
+    levelIndex = ((idx % LEVELS.length) + LEVELS.length) % LEVELS.length;
+    const lv = LEVELS[levelIndex];
+    BOX = { x:lv.box.x, y:lv.box.y, z:lv.box.z };
+    D = lv.d.slice();
+    SC = TARGET_BOX_PX / Math.max(BOX.x, BOX.y, BOX.z);
+
+    ORIENTS = [];
     const seen=new Set();
-    [[0,1,2],[0,2,1],[1,0,2],[1,2,0],[2,0,1],[2,1,0]].forEach(p=>{
+    [[0,1,2],[0,2,1],[1,0,2],[1,2,0],[2,0,1],[2,1,0]].forEach(function(p){
       const ext=[D[p[0]],D[p[1]],D[p[2]]], k=keyOf(ext);
       if(seen.has(k)) return; seen.add(k);
       const nx=Math.floor(BOX.x/ext[0]), ny=Math.floor(BOX.y/ext[1]), nz=Math.floor(BOX.z/ext[2]);
-      ORIENTS.push({ ext, key:k, nx, ny, nz, total:nx*ny*nz });
+      ORIENTS.push({ ext:ext, key:k, nx:nx, ny:ny, nz:nz, total:nx*ny*nz });
     });
-    ORIENTS.sort((a,b)=>a.key.localeCompare(b.key));
-  })();
-  const BEST = ORIENTS.reduce((m,o)=> o.total>m.total ? o : m, ORIENTS[0]);
-  ORIENTS.forEach(o=> state.cards[o.key]={ st:0, o });
+    ORIENTS.sort(function(a,b){ return a.key.localeCompare(b.key); });
+    MAXTOTAL = ORIENTS.reduce(function(m,o){ return Math.max(m,o.total); }, 0);
+    FIXEDPAIRS = computeFixedPairs();
+
+    state.cam = { yaw:-0.62, pitch:0.40 };
+    state.small = { M:[[1,0,0],[0,1,0],[0,0,1]] };
+    state.selected=false; state.hover=false; state.drag=null; state.carry=null;
+    state.packed=null; state.anim=null;
+    state.cards={}; state.revealTotals=false; state.quizDone=false; state.nudge=0;
+    state.completedScrolled=false;
+    state.startedScrolled=false;
+    clearTimeout(state.finishTimer);
+    resetBubbles();
+    ORIENTS.forEach(function(o){ state.cards[o.key]={ st:0, o:o }; });
+
+    el('cards').innerHTML='';
+    el('quiz').classList.remove('show');
+    el('qresult').className='qresult';
+    el('qresult').innerHTML='';
+    renderCards();
+    draw();
+  }
 
   function matMul(A,B){const C=[[0,0,0],[0,0,0],[0,0,0]];
     for(let i=0;i<3;i++)for(let j=0;j<3;j++){let v=0;for(let k=0;k<3;k++)v+=A[i][k]*B[k][j];C[i][j]=v;}return C;}
   function rotY(a){const c=Math.cos(a),s=Math.sin(a);return [[c,0,s],[0,1,0],[-s,0,c]];}
   function rotX(a){const c=Math.cos(a),s=Math.sin(a);return [[1,0,0],[0,c,-s],[0,s,c]];}
+  function rotZ(a){const c=Math.cos(a),s=Math.sin(a);return [[c,-s,0],[s,c,0],[0,0,1]];}
   function apply(R,p){return [R[0][0]*p[0]+R[0][1]*p[1]+R[0][2]*p[2],
                               R[1][0]*p[0]+R[1][1]*p[1]+R[1][2]*p[2],
                               R[2][0]*p[0]+R[2][1]*p[1]+R[2][2]*p[2]];}
@@ -248,7 +368,7 @@
   const sndWin   =function(){[523,659,784,1046,1318].forEach(function(f,i){tone(f,.42,'sine',.18,i*.1);});};
   const sndErr   =function(){tone(150,.25,'sawtooth',.14);};
 
-  const FILL_MS = 2600, FLY_MS = 420;
+  const FILL_MS = 2600, FLY_MS = 420, NUDGE_MS = 1400, CHORD_MS = 620;
   function startPacking(o){
     const ext=o.ext, cells=[];
     const origin=[-BOX.x/2,-BOX.y/2,-BOX.z/2];
@@ -309,25 +429,29 @@
     if(!state.carry) drawSmall(PED_C, PED_S());
     const e=extentsFromM(state.small.M);
     ctx.textAlign='center';
-    ctx.font='600 14px '+bodyFont(); ctx.fillStyle='rgba(143,168,191,.9)';
-    ctx.fillText('小长方体 X（放大 '+MAG+' 倍显示）', PED_C.x, PED_C.y+104);
-    ctx.font='700 21px '+monoFont();
+    const magFactor = PED_S()/SC;
+    ctx.font='600 17px '+bodyFont(); ctx.fillStyle='rgba(143,168,191,.92)';
+    ctx.fillText('小长方体 X（放大 '+magFactor.toFixed(1)+' 倍显示）', PED_C.x, PED_C.y+92);
+    ctx.font='700 30px '+monoFont();
     ctx.fillStyle=state.selected?'#ffb703':'#5ac8ff';
-    ctx.fillText('长 '+e[0]+'　高 '+e[1]+'　深 '+e[2], PED_C.x, PED_C.y+132);
+    ctx.fillText('长 '+e[0]+'　高 '+e[1]+'　深 '+e[2], PED_C.x, PED_C.y+128);
     const cur=state.cards[keyOf(e)];
-    ctx.font='600 15px '+bodyFont();
+    ctx.font='700 20px '+bodyFont();
     if(state.selected){
       ctx.fillStyle='rgba(255,183,3,.95)';
-      ctx.fillText('已选中 — 拖进下面的容器', PED_C.x, PED_C.y+156);
+      ctx.fillText('已选中 — 拖进下面的容器', PED_C.x, PED_C.y+166);
     }else if(cur && cur.st===2){
-      ctx.fillStyle='rgba(143,168,191,.95)';
-      ctx.fillText('这个朝向已经装过了 — 翻一面试试', PED_C.x, PED_C.y+156);
+      const hot=(performance.now()-state.nudge)<NUDGE_MS;
+      ctx.font=(hot?'700 24px ':'700 20px ')+bodyFont();
+      ctx.fillStyle= hot ? '#ffb703' : 'rgba(143,168,191,.95)';
+      ctx.fillText(hot?'⚠ 这个朝向已经装过了！翻一面试试':'这个朝向已经装过了 — 翻一面试试',
+                   PED_C.x, PED_C.y+166);
     }else if(cur && cur.st===1){
       ctx.fillStyle='rgba(90,200,255,.95)';
-      ctx.fillText('这个朝向还没装箱 — 点一下再拖进容器', PED_C.x, PED_C.y+156);
+      ctx.fillText('这个朝向还没装箱 — 点一下再拖进容器', PED_C.x, PED_C.y+166);
     }else{
       ctx.fillStyle='rgba(74,222,128,.95)';
-      ctx.fillText('✨ 新朝向！点一下解锁', PED_C.x, PED_C.y+156);
+      ctx.fillText('✨ 新朝向！点一下解锁', PED_C.x, PED_C.y+166);
     }
     if(state.carry) drawSmall(state.carry, PED_S());
   }
@@ -385,9 +509,9 @@
     const expr=p.nx+' × '+p.ny+' × '+p.nz;
     ctx.textAlign='left';
     ctx.font='600 15px '+bodyFont(); ctx.fillStyle='rgba(143,168,191,.9)';
-    ctx.fillText('这一次装了', 28, 40);
-    ctx.font='800 38px '+monoFont(); ctx.fillStyle='#ffb703';
-    ctx.fillText(state.revealTotals ? expr+' = '+(p.nx*p.ny*p.nz)+' 个' : expr+' = ?', 28, 82);
+    ctx.fillText('这一次装了', 26, 30);
+    ctx.font='800 30px '+monoFont(); ctx.fillStyle='#ffb703';
+    ctx.fillText(state.revealTotals ? expr+' = '+(p.nx*p.ny*p.nz)+' 个' : expr+' = ?', 26, 64);
     ctx.textAlign='center';
   }
 
@@ -406,11 +530,12 @@
     ctx.font='700 19px '+monoFont();
     ctx.textAlign='center';
     // clamp into the canvas so a wide/tall view never pushes a label off the edge
-    ctx.fillText(texts[0], (bb.l+bb.r)/2, Math.min(bb.b+38, H-14));   // 长：底部
+    ctx.fillText(texts[0], (bb.l+bb.r)/2, Math.min(bb.b+34, H-12));   // 长：底部
     ctx.textAlign='left';
-    ctx.fillText(texts[1], Math.min(bb.r+18, W-190), (bb.t+bb.b)/2);  // 高：右侧
-    ctx.textAlign='right';
-    ctx.fillText(texts[2], Math.max(bb.l-18, 190), Math.max(bb.t+46, 120)); // 深：左上
+    const rx=Math.min(bb.r+16, W-120), cy=(bb.t+bb.b)/2;
+    ctx.fillText(texts[1], rx, cy-14);                                 // 高：右侧
+    ctx.fillText(texts[2], rx, cy+16);                                 // 深：右侧
+    ctx.textAlign='center';
     ctx.textAlign='center';
   }
 
@@ -442,7 +567,7 @@
     const r=cv.getBoundingClientRect();
     return {x:(e.clientX-r.left)*(W/r.width), y:(e.clientY-r.top)*(H/r.height)};
   }
-  const PED_S = function(){ return SC*MAG*0.44; };
+  const PED_S = function(){ return TARGET_PED_PX / Math.max(D[0],D[1],D[2]); };
 
   cv.addEventListener('pointerdown',function(e){
     const p=pos(e); cv.setPointerCapture(e.pointerId); cv.classList.add('grabbing');
@@ -484,31 +609,107 @@
     draw();
   });
 
+  function scrollSectionTop(id){
+    // instant, not smooth: a mid-flight scroll animation would slide the cuboid
+    // out from under the cursor if the user drags immediately after clicking it
+    const node = document.getElementById(id);
+    if(!node) return;
+    const top = node.getBoundingClientRect().top + window.scrollY - 8;
+    window.scrollTo({ top: Math.max(0, top), behavior:'auto' });
+  }
+
   function selectSmall(){
     state.small.M=snapM(state.small.M);
-    state.selected=true;
     const c=state.cards[keyOf(extentsFromM(state.small.M))];
+    if(c && c.st===2){            // already packed → don't arm it, nudge them to turn it
+      state.selected=false;
+      state.nudge=performance.now();
+      tone(300,.10,'triangle',.10); tone(240,.16,'triangle',.09,.10);
+      draw();
+      setTimeout(draw, NUDGE_MS+40);
+      return;
+    }
+    state.selected=true;
+    if(!state.startedScrolled){ state.startedScrolled=true; scrollSectionTop('stageSection'); }
     if(c&&c.st===0){ c.st=1; sndUnlock(); renderCards(); } else sndSnap();
   }
   function packNow(){
     const key=keyOf(extentsFromM(state.small.M));
     const o=ORIENTS.filter(function(x){return x.key===key;})[0];
     const c=state.cards[o.key];
+    const wasNew = c.st<2;
     if(c.st<2) c.st=2;
     state.selected=false;
     startPacking(o);
     renderCards();
+    if(wasNew){
+      checkRetirement();   // does packing this piece finish off any single button's own pair?
+      const doneCount = ORIENTS.filter(function(x){return state.cards[x.key].st===2;}).length;
+      if(doneCount===ORIENTS.length){
+        clearTimeout(state.finishTimer);
+        // wait for the fly-in animation AND the finishing chord to fully finish before jumping
+        state.finishTimer = setTimeout(function(){
+          showQuiz();
+          if(!state.completedScrolled){ state.completedScrolled=true; scrollSectionTop('cardsSection'); }
+        }, FILL_MS + FLY_MS + CHORD_MS + 150);
+      }
+    }
   }
-  function turn(R){
-    state.small.M = snapM(matMul(R, snapM(state.small.M)));
+
+  // Each button owns a fixed pair of orientations (computed once in computeFixedPairs).
+  // The 3 pairs are disjoint and cover all 6 states, so as soon as BOTH members of a
+  // button's own pair are packed, that button has nothing left to offer — pop it.
+  const AXES = ['Y','X','Z'];
+  function checkRetirement(){
+    AXES.forEach(function(axis){
+      if(state.retired[axis]) return;
+      const pair = FIXEDPAIRS[axis];
+      if(!pair) return;
+      const c1 = state.cards[pair[0]], c2 = state.cards[pair[1]];
+      if(c1 && c2 && c1.st===2 && c2.st===2){
+        state.retired[axis] = true;
+        popBubble(el('btnRot'+axis));
+      }
+    });
+  }
+  function popBubble(btn){
+    btn.classList.add('retired');
+    tone(920,.055,'sine',.13);
+    tone(560,.09,'sine',.1,.035);
+    for(let i=0;i<5;i++){
+      const p = document.createElement('span');
+      p.className='pop-particle';
+      p.textContent='🫧';
+      p.style.left = (50 + (Math.random()*30-15)) + '%';
+      p.style.animationDelay = (Math.random()*0.12) + 's';
+      p.style.fontSize = (9 + Math.random()*7) + 'px';
+      btn.appendChild(p);
+      setTimeout(function(){ p.remove(); }, 950);
+    }
+  }
+  function resetBubbles(){
+    state.retired = { Y:false, X:false, Z:false };
+    [el('btnRotY'), el('btnRotX'), el('btnRotZ')].forEach(function(b){
+      b.classList.remove('retired');
+      b.querySelectorAll('.pop-particle').forEach(function(p){ p.remove(); });
+    });
+  }
+
+  function turn(axis){
+    // each button always toggles the SAME fixed pair of orientations, regardless of
+    // how the cuboid got to its current pose — so 6 clicks (2 per button) is always enough
+    const pair = FIXEDPAIRS[axis];
+    if(!pair) return;
+    const curKey = keyOf(extentsFromM(state.small.M));
+    const targetKey = (curKey===pair[0]) ? pair[1] : pair[0];
+    state.small.M = snapM(keyToM(targetKey));
     state.selected = false;
     sndSnap();
     draw();
   }
-  el('btnRotY').addEventListener('click',function(){ turn(rotY(Math.PI/2)); });
-  el('btnRotX').addEventListener('click',function(){ turn(rotX(Math.PI/2)); });
-  el('btnClear').addEventListener('click',function(){ state.packed=null; state.anim=null; draw(); });
-
+  el('btnRotY').addEventListener('click',function(){ turn('Y'); });
+  el('btnRotX').addEventListener('click',function(){ turn('X'); });
+  el('btnRotZ').addEventListener('click',function(){ turn('Z'); });
   // width toggle: matches the other tools by default, expands when the student wants a bigger stage
   var wideOn=false;
   try{ wideOn = localStorage.getItem('packWide')==='1'; }catch(e){}
@@ -558,7 +759,7 @@
       const c=state.cards[o.key], d=el('card-'+o.key), on=c.st>=1;
       drawMini(d.querySelector('canvas'),o.ext,on);
       d.className='card'+(c.st===1?' open':'')+(c.st===2?' done':'')
-        +(state.revealTotals&&o.key===BEST.key?' best':'');
+        +(state.revealTotals&&o.total===MAXTOTAL?' best':'');
       d.querySelector('.lock').textContent=c.st===0?'🔒':(c.st===1?'🔓':'✅');
       d.querySelector('.dims').textContent= on?('长'+o.ext[0]+' 高'+o.ext[1]+' 深'+o.ext[2]):'? × ? × ?';
       d.querySelector('.calc').textContent= c.st===2?(o.nx+' × '+o.ny+' × '+o.nz):'';
@@ -571,20 +772,22 @@
     el('progress').textContent =
       '🔓 已发现 '+found+' / '+ORIENTS.length+' 种朝向　✅ 已装箱 '+done+' / '+ORIENTS.length
       + (done<ORIENTS.length ? '　— 继续翻转、选中、拖进容器' : '　— 全部装完了！比一比哪种最多');
-    if(done===ORIENTS.length) showQuiz();
+    el('progressFill').style.width = (done/ORIENTS.length*100)+'%';
   }
 
   function showQuiz(){
     const q=el('quiz'); if(q.classList.contains('show')) return;
     q.classList.add('show');
     const box=el('qopts'); box.innerHTML='';
+    const volBox = BOX.x*BOX.y*BOX.z, volCub = D[0]*D[1]*D[2];
+    const naive = Math.floor(volBox/volCub);
     ORIENTS.forEach(function(o){
       const b=document.createElement('button');
       b.className='qopt';
       b.textContent='长'+o.ext[0]+' 高'+o.ext[1]+' 深'+o.ext[2]+'　('+o.nx+'×'+o.ny+'×'+o.nz+')';
       b.addEventListener('click',function(){
         if(state.quizDone) return;
-        const right=o.key===BEST.key;
+        const right = o.total===MAXTOTAL;
         b.classList.add(right?'right':'wrong');
         const r=el('qresult');
         if(right){
@@ -592,21 +795,30 @@
           sndWin(); renderCards(); draw();
           Array.prototype.forEach.call(box.children,function(x){x.disabled=true;});
           r.className='qresult show good';
-          r.innerHTML='✔ 正确！把 <b>'+BEST.ext[0]+'cm</b> 放在 70cm 的长上、<b>'+BEST.ext[1]+'cm</b> 放在 50cm 的高上、'
-            +'<b>'+BEST.ext[2]+'cm</b> 放在 24cm 的深上，'+BEST.nx+' × '+BEST.ny+' × '+BEST.nz+' = <b>'+BEST.total+'</b> 个。<br>'
-            +'注意：容器体积 ÷ 小长方体体积 = 84000 ÷ 120 = 700，但 700 个是装不下的——'
-            +'每条边都可能剩下一小截空隙，所以必须按边长一条一条地算。';
+          r.innerHTML='✔ 正确！把 <b>'+o.ext[0]+'cm</b> 放在 '+BOX.x+'cm 的长上、<b>'+o.ext[1]+'cm</b> 放在 '+BOX.y+'cm 的高上、'
+            +'<b>'+o.ext[2]+'cm</b> 放在 '+BOX.z+'cm 的深上，'+o.nx+' × '+o.ny+' × '+o.nz+' = <b>'+o.total+'</b> 个。<br>'
+            +(naive>MAXTOTAL
+              ? '注意：容器体积 ÷ 小长方体体积 = '+volBox+' ÷ '+volCub+' = '+naive+'，但 '+naive+' 个是装不下的——'
+                +'每条边都可能剩下一小截空隙，所以必须按边长一条一条地算。'
+              : '容器体积 ÷ 小长方体体积 = '+volBox+' ÷ '+volCub+' = '+naive+'，这一次刚好算出了同一个数——但这只是巧合，'
+                +'还是要按边长一条一条地算，才能确定真正装得下几个。');
         }else{
           sndErr();
           r.className='qresult show bad';
-          r.innerHTML='✘ 再比一比：'+o.nx+' × '+o.ny+' × '+o.nz+' 真的是最大的吗？';
+          r.innerHTML='✘ 再比一比：'+o.nx+' × '+o.ny+' × '+o.nz+' = '+o.total+'，真的是最大的吗？';
         }
       });
       box.appendChild(b);
     });
   }
 
-  renderCards(); draw();
+  function nextLevel(){
+    buildLevel(levelIndex+1);
+  }
+  el('btnRestart').addEventListener('click', nextLevel);
+  el('btnRestart2').addEventListener('click', nextLevel);
+
+  buildLevel(0);
 })();
 </script>
 </body>
